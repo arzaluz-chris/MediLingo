@@ -1,9 +1,9 @@
 // Multi-provider AI abstraction. Switch providers by configuration, not code.
 // Order: Gemini primary, OpenAI fallback, Claude specialty (CLAUDE.md § AI).
 //
-// Phase 0: provider implementations are stubs that require an API key in the
-// environment. Wire real SDK calls in Phase 1. Until keys are set, chat()
-// throws and chatWithFallback() surfaces a clean "all providers failed" error.
+// Each provider requires its API key in the environment; a provider without
+// its key throws immediately and chatWithFallback() moves to the next one.
+// With no keys at all it surfaces a clean "all providers failed" error.
 
 import type { AIProvider, AIResponse, ChatOptions, Message } from "./types.ts";
 
@@ -44,20 +44,66 @@ class GeminiProvider implements AIProvider {
 }
 
 class OpenAIProvider implements AIProvider {
-  async chat(_messages: Message[], options?: ChatOptions): Promise<AIResponse> {
+  async chat(messages: Message[], options?: ChatOptions): Promise<AIResponse> {
     const key = Deno.env.get("OPENAI_API_KEY");
     if (!key) throw new Error("OPENAI_API_KEY not configured");
-    // TODO(phase-1): call OpenAI chat completions.
-    throw new Error("OpenAIProvider.chat not implemented");
+
+    const model = options?.model ?? "gpt-4o-mini";
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model,
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        temperature: options?.temperature ?? 0.7,
+        max_tokens: options?.maxTokens ?? 1024,
+        ...(options?.responseFormat === "json" ? { response_format: { type: "json_object" } } : {}),
+      }),
+    });
+    if (!res.ok) throw new Error(`OpenAI ${res.status}: ${await res.text()}`);
+
+    const data = await res.json();
+    return {
+      content: data?.choices?.[0]?.message?.content ?? "",
+      tokensUsed: data?.usage?.total_tokens ?? 0,
+      provider: "openai",
+      model,
+    };
   }
 }
 
 class ClaudeProvider implements AIProvider {
-  async chat(_messages: Message[], options?: ChatOptions): Promise<AIResponse> {
+  async chat(messages: Message[], options?: ChatOptions): Promise<AIResponse> {
     const key = Deno.env.get("ANTHROPIC_API_KEY");
     if (!key) throw new Error("ANTHROPIC_API_KEY not configured");
-    // TODO(phase-1): call Anthropic messages API.
-    throw new Error("ClaudeProvider.chat not implemented");
+
+    const model = options?.model ?? "claude-haiku-4-5-20251001";
+    const system = messages.filter((m) => m.role === "system").map((m) => m.content).join("\n");
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: options?.maxTokens ?? 1024,
+        temperature: options?.temperature ?? 0.7,
+        ...(system ? { system } : {}),
+        messages: messages
+          .filter((m) => m.role !== "system")
+          .map((m) => ({ role: m.role, content: m.content })),
+      }),
+    });
+    if (!res.ok) throw new Error(`Anthropic ${res.status}: ${await res.text()}`);
+
+    const data = await res.json();
+    const content = (data?.content ?? [])
+      .map((block: { type: string; text?: string }) => (block.type === "text" ? block.text ?? "" : ""))
+      .join("");
+    const tokensUsed = (data?.usage?.input_tokens ?? 0) + (data?.usage?.output_tokens ?? 0);
+    return { content, tokensUsed, provider: "claude", model };
   }
 }
 

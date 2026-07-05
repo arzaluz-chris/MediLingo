@@ -3,6 +3,10 @@ package app.medilingo.feature.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.medilingo.data.AuthRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 // Auth screen state (mirrors iOS AuthViewModel).
@@ -16,26 +20,24 @@ class AuthViewModel(private val auth: AuthRepository) : ViewModel() {
         val error: String? = null,
     )
 
-    var state = UiState()
-        private set
+    private val _state = MutableStateFlow(UiState())
+    val state: StateFlow<UiState> = _state.asStateFlow()
 
-    fun onEmailChange(value: String) { state = state.copy(email = value) }
-    fun onPasswordChange(value: String) { state = state.copy(password = value) }
-    fun toggleMode() { state = state.copy(isSignUp = !state.isSignUp, error = null) }
-
-    val canSubmit: Boolean
-        get() = state.email.contains("@") && state.password.length >= 6 && !state.isLoading
+    fun onEmailChange(value: String) { _state.update { it.copy(email = value) } }
+    fun onPasswordChange(value: String) { _state.update { it.copy(password = value) } }
+    fun toggleMode() { _state.update { it.copy(isSignUp = !it.isSignUp, error = null) } }
 
     fun submit(onSuccess: () -> Unit) {
-        state = state.copy(isLoading = true, error = null)
+        val s = _state.value
+        _state.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                if (state.isSignUp) auth.signUp(state.email, state.password)
-                else auth.signIn(state.email, state.password)
-                state = state.copy(isLoading = false)
+                if (s.isSignUp) auth.signUp(s.email, s.password)
+                else auth.signIn(s.email, s.password)
+                _state.update { it.copy(isLoading = false) }
                 onSuccess()
             } catch (e: Exception) {
-                state = state.copy(isLoading = false, error = "Credenciales incorrectas.")
+                _state.update { it.copy(isLoading = false, error = "Credenciales incorrectas.") }
             }
         }
     }
