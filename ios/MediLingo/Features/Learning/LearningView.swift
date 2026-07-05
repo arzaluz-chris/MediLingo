@@ -27,6 +27,7 @@ struct LearningView: View {
                 viewModel = LearningViewModel(
                     content: dependencies.contentRepository,
                     gamification: dependencies.gamificationRepository,
+                    progress: dependencies.progressRepository,
                 )
                 await viewModel?.load()
             }
@@ -37,8 +38,8 @@ struct LearningView: View {
                 exercises: item.exercises,
                 hearts: item.hearts,
                 isPremium: dependencies.subscriptionService.isPremium,
-            ) { xp, _ in
-                Task { await viewModel?.awardLessonXP(xp) }
+            ) { xp, accuracy in
+                Task { await viewModel?.completeLesson(item.lesson, xp: xp, accuracy: accuracy) }
             }
         }
     }

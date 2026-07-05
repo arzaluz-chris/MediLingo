@@ -13,10 +13,14 @@ final class LearningViewModel {
 
     private let content: ContentRepositoryProtocol
     private let gamification: GamificationRepositoryProtocol
+    private let progress: ProgressRepositoryProtocol
 
-    init(content: ContentRepositoryProtocol, gamification: GamificationRepositoryProtocol) {
+    init(content: ContentRepositoryProtocol,
+         gamification: GamificationRepositoryProtocol,
+         progress: ProgressRepositoryProtocol) {
         self.content = content
         self.gamification = gamification
+        self.progress = progress
     }
 
     func load() async {
@@ -48,7 +52,9 @@ final class LearningViewModel {
         }
     }
 
-    func awardLessonXP(_ xp: Int) async {
-        _ = try? await gamification.addXP(xp)
+    /// Persist completion: updates progress + XP + lessons_completed and bumps
+    /// the streak (server trigger on user_progress).
+    func completeLesson(_ lesson: Lesson, xp: Int, accuracy: Double) async {
+        try? await progress.completeLesson(lessonID: lesson.id, score: accuracy, xpEarned: xp)
     }
 }

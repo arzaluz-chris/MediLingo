@@ -13,7 +13,7 @@ extension AppDependencies {
         return AppDependencies(
             authService: SupabaseAuthService(client: client),
             contentRepository: SupabaseContentRepository(client: client),
-            progressRepository: StubProgressRepository(),
+            progressRepository: SupabaseProgressRepository(client: client),
             gamificationRepository: SupabaseGamificationRepository(client: client),
             flashcardRepository: StubFlashcardRepository(),
             aiService: StubAIService(),
