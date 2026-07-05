@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://medilingo.app/schemas/sentence_ordering.schema.json",
+  "title": "Sentence Ordering exercise metadata",
+  "description": "metadata for exercise_type = 'sentence_ordering'. Correct sentence is exercises.correct_answer.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "words": { "type": "array", "items": { "type": "string" }, "minItems": 2 },
+    "extra_words": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "show_punctuation": { "type": "boolean", "default": true }
+  },
+  "required": ["words"]
+}

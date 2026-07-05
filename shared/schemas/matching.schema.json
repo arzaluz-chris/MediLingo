@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://medilingo.app/schemas/matching.schema.json",
+  "title": "Matching exercise metadata",
+  "description": "metadata for exercise_type = 'matching'. Paired items live in exercise_options, grouped by match_pair_id.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "columns": { "type": "integer", "minimum": 2, "maximum": 2, "default": 2 },
+    "timer_seconds": { "type": ["integer", "null"], "minimum": 0, "default": null }
+  }
+}

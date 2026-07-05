@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://medilingo.app/schemas/multiple_choice.schema.json",
+  "title": "Multiple Choice exercise metadata",
+  "description": "metadata shape for exercises where exercise_type = 'multiple_choice'. Options live in exercise_options.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "shuffle_options": { "type": "boolean", "default": true },
+    "show_audio_for_options": { "type": "boolean", "default": false }
+  }
+}

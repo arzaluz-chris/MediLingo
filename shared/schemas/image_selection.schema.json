@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://medilingo.app/schemas/image_selection.schema.json",
+  "title": "Image Selection exercise metadata",
+  "description": "metadata for exercise_type = 'image_selection'. Options (with option_image_url) live in exercise_options.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "columns": { "type": "integer", "minimum": 1, "maximum": 4, "default": 2 },
+    "shuffle_options": { "type": "boolean", "default": true }
+  }
+}

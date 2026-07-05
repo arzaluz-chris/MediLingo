@@ -1,0 +1,49 @@
+# ── macOS ─────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+
+# ── Xcode / Swift ─────────────────────────────────
+ios/**/*.xcodeproj
+ios/**/*.xcworkspace
+!ios/**/*.xcworkspace/contents.xcworkspacedata
+ios/**/xcuserdata/
+ios/**/DerivedData/
+ios/**/build/
+ios/**/.swiftpm/
+ios/**/*.xcodeproj/project.xcworkspace/xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# ── Node / Next.js (admin) ────────────────────────
+admin/node_modules/
+admin/.next/
+admin/out/
+admin/build/
+admin/.vercel/
+admin/next-env.d.ts
+admin/*.tsbuildinfo
+admin/.env
+admin/.env.local
+admin/.env*.local
+
+# ── Supabase ──────────────────────────────────────
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# ── Secrets / config (never commit) ───────────────
+*.env
+!*.env.example
+ios/MediLingo/Resources/Secrets.xcconfig
+GoogleService-Info.plist
+
+# ── Logs / misc ───────────────────────────────────
+*.log
+npm-debug.log*
+pnpm-debug.log*
+.pnpm-store/

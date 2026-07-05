@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://medilingo.app/schemas/translation.schema.json",
+  "title": "Translation exercise metadata",
+  "description": "metadata for exercise_type = 'translation'. AI evaluation optional via use_ai_evaluation.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "source_language": { "type": "string", "enum": ["es", "en"] },
+    "target_language": { "type": "string", "enum": ["es", "en"] },
+    "source_text": { "type": "string" },
+    "acceptable_translations": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "key_terms": { "type": "array", "items": { "type": "string" } },
+    "use_ai_evaluation": { "type": "boolean", "default": false }
+  },
+  "required": ["source_language", "target_language", "source_text", "acceptable_translations"]
+}

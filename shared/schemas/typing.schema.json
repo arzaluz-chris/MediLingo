@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://medilingo.app/schemas/typing.schema.json",
+  "title": "Typing (free text) exercise metadata",
+  "description": "metadata for exercise_type = 'typing'. Primary answer is exercises.correct_answer.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "acceptable_answers": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "case_sensitive": { "type": "boolean", "default": false },
+    "max_length": { "type": "integer", "minimum": 1, "default": 100 },
+    "placeholder": { "type": "string", "default": "Type your answer..." },
+    "show_keyboard_hints": { "type": "boolean", "default": true }
+  },
+  "required": ["acceptable_answers"]
+}

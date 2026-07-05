@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://medilingo.app/schemas/flashcard.schema.json",
+  "title": "Flashcard exercise metadata",
+  "description": "metadata for exercise_type = 'flashcard'. Front/back content for spaced-repetition review.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "front": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string" },
+        "subtext": { "type": "string" }
+      },
+      "required": ["text"]
+    },
+    "back": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string" },
+        "translation": { "type": "string" },
+        "explanation": { "type": "string" },
+        "example": { "type": "string" }
+      },
+      "required": ["text"]
+    },
+    "auto_flip_seconds": { "type": ["integer", "null"], "default": null },
+    "show_pronunciation": { "type": "boolean", "default": true }
+  },
+  "required": ["front", "back"]
+}

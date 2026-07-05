@@ -1,0 +1,42 @@
+{
+  "sourceLanguage" : "es",
+  "strings" : {
+    "Aprender" : {
+      "comment" : "Learn tab title",
+      "extractionState" : "manual"
+    },
+    "Contraseña" : {
+      "comment" : "Password field",
+      "extractionState" : "manual"
+    },
+    "Correo" : {
+      "comment" : "Email field",
+      "extractionState" : "manual"
+    },
+    "Crear cuenta" : {
+      "comment" : "Sign up button",
+      "extractionState" : "manual"
+    },
+    "Entrar" : {
+      "comment" : "Sign in button",
+      "extractionState" : "manual"
+    },
+    "Inicio" : {
+      "comment" : "Home tab title",
+      "extractionState" : "manual"
+    },
+    "Inglés médico para profesionales de la salud" : {
+      "comment" : "Auth screen tagline",
+      "extractionState" : "manual"
+    },
+    "Perfil" : {
+      "comment" : "Profile tab title",
+      "extractionState" : "manual"
+    },
+    "Repaso" : {
+      "comment" : "Flashcard review tab title",
+      "extractionState" : "manual"
+    }
+  },
+  "version" : "1.0"
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://medilingo.app/schemas/fill_in_blank.schema.json",
+  "title": "Fill in the Blank exercise metadata",
+  "description": "metadata for exercise_type = 'fill_in_blank'. The primary answer is exercises.correct_answer.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "acceptable_answers": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "case_sensitive": { "type": "boolean", "default": false },
+    "blank_position": { "type": "string", "enum": ["inline", "end"], "default": "inline" },
+    "context": { "type": "string" },
+    "word_bank": { "type": "array", "items": { "type": "string" } }
+  },
+  "required": ["acceptable_answers"]
+}

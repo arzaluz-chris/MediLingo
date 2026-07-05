@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://medilingo.app/schemas/pronunciation.schema.json",
+  "title": "Pronunciation exercise metadata",
+  "description": "metadata for exercise_type = 'pronunciation'. Scored server-side via the evaluate-pronunciation Edge Function.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "word": { "type": "string" },
+    "phonetic": { "type": "string" },
+    "minimum_score": { "type": "integer", "minimum": 0, "maximum": 100, "default": 60 },
+    "syllables": { "type": "array", "items": { "type": "string" } },
+    "common_mistakes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mistake": { "type": "string" },
+          "correction": { "type": "string" }
+        },
+        "required": ["mistake", "correction"]
+      }
+    },
+    "definition_es": { "type": "string" }
+  },
+  "required": ["word", "minimum_score"]
+}
