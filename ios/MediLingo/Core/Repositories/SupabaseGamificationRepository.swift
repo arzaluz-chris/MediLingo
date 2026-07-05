@@ -53,11 +53,60 @@ struct SupabaseGamificationRepository: GamificationRepositoryProtocol {
     }
 
     func getDailyQuests() async throws -> [DailyQuest] {
-        // TODO(phase-2): join user_daily_quests for today with the quest pool.
-        []
+        let uid = try await currentUserID()
+        let today = Self.dateFormatter.string(from: Date())
+
+        // Assigned quests for today (joined with the quest definition).
+        var assigned: [UserQuestRow] = try await client
+            .from("user_daily_quests")
+            .select("id, current_value, is_completed, quest_id, daily_quests(id, title, description, quest_type, target_value)")
+            .eq("user_id", value: uid)
+            .eq("quest_date", value: today)
+            .execute().value
+
+        // First visit today → assign 3 random active quests.
+        if assigned.isEmpty {
+            let pool: [QuestRow] = try await client
+                .from("daily_quests").select("id, title, description, quest_type, target_value")
+                .eq("is_active", value: true)
+                .execute().value
+            let picks = Array(pool.shuffled().prefix(3))
+            if !picks.isEmpty {
+                let rows = picks.map { AssignQuest(user_id: uid, quest_id: $0.id, quest_date: today) }
+                try await client.from("user_daily_quests").insert(rows).execute()
+                assigned = try await client
+                    .from("user_daily_quests")
+                    .select("id, current_value, is_completed, quest_id, daily_quests(id, title, description, quest_type, target_value)")
+                    .eq("user_id", value: uid).eq("quest_date", value: today)
+                    .execute().value
+            }
+        }
+        return assigned.compactMap { $0.toDomain() }
     }
 
-    func updateQuestProgress(questID: UUID, increment: Int) async throws {}
+    func updateQuestProgress(questID: UUID, increment: Int) async throws {
+        let uid = try await currentUserID()
+        let today = Self.dateFormatter.string(from: Date())
+        let rows: [UserQuestProgressRow] = try await client
+            .from("user_daily_quests")
+            .select("id, current_value, quest_id, daily_quests(target_value)")
+            .eq("user_id", value: uid).eq("quest_date", value: today).eq("quest_id", value: questID)
+            .execute().value
+        guard let row = rows.first else { return }
+        let newValue = row.current_value + increment
+        let completed = newValue >= (row.daily_quests?.target_value ?? Int.max)
+        try await client.from("user_daily_quests")
+            .update(QuestProgressUpdate(current_value: newValue, is_completed: completed))
+            .eq("id", value: row.id)
+            .execute()
+    }
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.timeZone = .current
+        return f
+    }()
 
     func getAchievements() async throws -> [Achievement] {
         let rows: [AchievementRow] = try await client
@@ -127,4 +176,46 @@ private struct AchievementRow: Decodable {
 
 private struct UserAchievementRow: Decodable {
     let achievement_id: UUID
+}
+
+private struct QuestRow: Decodable {
+    let id: UUID
+    let title: String
+    let description: String
+    let quest_type: String
+    let target_value: Int
+}
+
+private struct UserQuestRow: Decodable {
+    let id: UUID
+    let current_value: Int
+    let is_completed: Bool
+    let quest_id: UUID
+    let daily_quests: QuestRow?
+    func toDomain() -> DailyQuest? {
+        guard let q = daily_quests else { return nil }
+        return DailyQuest(id: quest_id, title: q.title, description: q.description,
+                          questType: q.quest_type, targetValue: q.target_value,
+                          currentValue: current_value, isCompleted: is_completed)
+    }
+}
+
+private struct AssignQuest: Encodable {
+    let user_id: UUID
+    let quest_id: UUID
+    let quest_date: String
+}
+
+private struct QuestTargetRow: Decodable { let target_value: Int }
+
+private struct UserQuestProgressRow: Decodable {
+    let id: UUID
+    let current_value: Int
+    let quest_id: UUID
+    let daily_quests: QuestTargetRow?
+}
+
+private struct QuestProgressUpdate: Encodable {
+    let current_value: Int
+    let is_completed: Bool
 }

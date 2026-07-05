@@ -41,6 +41,12 @@ struct StubGamificationRepository: GamificationRepositoryProtocol {
     }
 }
 
+struct StubProfileRepository: ProfileRepositoryProtocol {
+    func isOnboardingComplete() async throws -> Bool { true }
+    func saveOnboarding(role: String, englishLevel: String, goal: String, dailyGoalXP: Int) async throws {}
+    func fetchProfile() async throws -> Profile? { nil }
+}
+
 struct StubFlashcardRepository: FlashcardRepositoryProtocol {
     func getDueFlashcards(limit: Int) async throws -> [FlashcardItem] { [] }
     func submitReview(vocabularyID: UUID, quality: Int) async throws {}

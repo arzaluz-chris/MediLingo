@@ -1,24 +1,36 @@
 import SwiftUI
 
-// App root. Routes between the auth flow and the authenticated experience.
+// App root. Routes between auth → onboarding → the authenticated experience.
 struct RootView: View {
     @Environment(AppDependencies.self) private var dependencies
-    @State private var path = NavigationPath()
     @State private var isAuthenticated = false
+    @State private var onboardingComplete: Bool?
 
     var body: some View {
         Group {
-            if isAuthenticated {
-                NavigationStack(path: $path) {
-                    HomeView()
-                }
+            if !isAuthenticated {
+                AuthView(onAuthenticated: {
+                    isAuthenticated = true
+                    Task { await loadOnboarding() }
+                })
+            } else if onboardingComplete == nil {
+                MLLoadingView()
+            } else if onboardingComplete == false {
+                OnboardingView(onComplete: { onboardingComplete = true })
             } else {
-                AuthView(onAuthenticated: { isAuthenticated = true })
+                HomeView(onSignOut: {
+                    onboardingComplete = nil
+                    isAuthenticated = false
+                })
             }
         }
         .task {
-            // Reflect any restored session on launch.
             isAuthenticated = dependencies.authService.isAuthenticated
+            if isAuthenticated { await loadOnboarding() }
         }
+    }
+
+    private func loadOnboarding() async {
+        onboardingComplete = (try? await dependencies.profileRepository.isOnboardingComplete()) ?? false
     }
 }

@@ -5,6 +5,7 @@ import SwiftUI
 @Observable
 final class HomeViewModel {
     var stats: UserStats = .empty
+    var quests: [DailyQuest] = []
     var isLoading = false
 
     private let gamification: GamificationRepositoryProtocol
@@ -17,5 +18,6 @@ final class HomeViewModel {
         isLoading = true
         defer { isLoading = false }
         stats = (try? await gamification.getUserStats()) ?? .empty
+        quests = (try? await gamification.getDailyQuests()) ?? []
     }
 }

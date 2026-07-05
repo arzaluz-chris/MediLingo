@@ -8,11 +8,38 @@
 import type { AIProvider, AIResponse, ChatOptions, Message } from "./types.ts";
 
 class GeminiProvider implements AIProvider {
-  async chat(_messages: Message[], options?: ChatOptions): Promise<AIResponse> {
+  async chat(messages: Message[], options?: ChatOptions): Promise<AIResponse> {
     const key = Deno.env.get("GEMINI_API_KEY");
     if (!key) throw new Error("GEMINI_API_KEY not configured");
-    // TODO(phase-1): call Gemini generateContent.
-    throw new Error("GeminiProvider.chat not implemented");
+
+    const model = options?.model ?? "gemini-2.0-flash";
+    // Map our message list to Gemini's shape: system → systemInstruction,
+    // user/assistant → contents (assistant becomes role "model").
+    const systemParts = messages.filter((m) => m.role === "system").map((m) => ({ text: m.content }));
+    const contents = messages
+      .filter((m) => m.role !== "system")
+      .map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
+
+    const body: Record<string, unknown> = {
+      contents,
+      generationConfig: {
+        temperature: options?.temperature ?? 0.7,
+        maxOutputTokens: options?.maxTokens ?? 1024,
+        ...(options?.responseFormat === "json" ? { responseMimeType: "application/json" } : {}),
+      },
+    };
+    if (systemParts.length > 0) body.systemInstruction = { parts: systemParts };
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+    );
+    if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
+
+    const data = await res.json();
+    const content = data?.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "";
+    const tokensUsed = data?.usageMetadata?.totalTokenCount ?? 0;
+    return { content, tokensUsed, provider: "gemini", model };
   }
 }
 

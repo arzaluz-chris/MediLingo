@@ -191,6 +191,10 @@ struct FlashcardItem: Identifiable, Sendable {
     let vocabularyID: UUID
     var word: String
     var translationES: String
+    var definitionEN: String
+    var exampleEN: String?
+    var phonetic: String?
+    var pronunciationURL: String?
     var masteryLevel: Int
 }
 

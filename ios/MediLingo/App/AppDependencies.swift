@@ -6,6 +6,7 @@ import Foundation
 @Observable
 final class AppDependencies {
     let authService: AuthServiceProtocol
+    let profileRepository: ProfileRepositoryProtocol
     let contentRepository: ContentRepositoryProtocol
     let progressRepository: ProgressRepositoryProtocol
     let gamificationRepository: GamificationRepositoryProtocol
@@ -19,6 +20,7 @@ final class AppDependencies {
 
     init(
         authService: AuthServiceProtocol,
+        profileRepository: ProfileRepositoryProtocol,
         contentRepository: ContentRepositoryProtocol,
         progressRepository: ProgressRepositoryProtocol,
         gamificationRepository: GamificationRepositoryProtocol,
@@ -31,6 +33,7 @@ final class AppDependencies {
         syncService: SyncServiceProtocol,
     ) {
         self.authService = authService
+        self.profileRepository = profileRepository
         self.contentRepository = contentRepository
         self.progressRepository = progressRepository
         self.gamificationRepository = gamificationRepository
@@ -47,6 +50,7 @@ final class AppDependencies {
     static func stub() -> AppDependencies {
         AppDependencies(
             authService: StubAuthService(),
+            profileRepository: StubProfileRepository(),
             contentRepository: StubContentRepository(),
             progressRepository: StubProgressRepository(),
             gamificationRepository: StubGamificationRepository(),
