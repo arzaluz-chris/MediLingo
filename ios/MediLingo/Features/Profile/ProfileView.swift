@@ -33,18 +33,9 @@ struct ProfileView: View {
                 VStack(spacing: MLSpacing.md) {
                     header(viewModel)
                     statGrid(viewModel)
-                    NavigationLink {
-                        VocabularyView()
-                    } label: {
-                        MLCard {
-                            HStack {
-                                Image(systemName: "text.book.closed.fill").foregroundStyle(Color.mlSecondary)
-                                Text("Vocabulario").font(MLFont.heading(17)).foregroundStyle(Color.mlTextPrimary)
-                                Spacer()
-                                Image(systemName: "chevron.right").foregroundStyle(Color.mlTextTertiary)
-                            }
-                        }
-                    }
+                    navLink("Vocabulario", icon: "text.book.closed.fill", tint: .mlSecondary) { VocabularyView() }
+                    navLink("Práctica con IA", icon: "bubble.left.and.bubble.right.fill", tint: .mlInfo) { AIConversationView() }
+                    navLink("Tienda", icon: "bag.fill", tint: .mlGems) { ShopView() }
                     MLButton(title: "Cerrar sesión", style: .outline) {
                         Task {
                             try? await dependencies.authService.signOut()
@@ -81,6 +72,21 @@ struct ProfileView: View {
             stat("Lecciones", "\(vm.stats.lessonsCompleted)", .mlSuccess, "checkmark.seal.fill")
             stat("Palabras", "\(vm.flashcards.learned)", .mlSecondary, "text.book.closed.fill")
             stat("Dominadas", "\(vm.flashcards.mastered)", .mlXP, "star.fill")
+        }
+    }
+
+    private func navLink<Destination: View>(_ title: String, icon: String, tint: Color, @ViewBuilder destination: @escaping () -> Destination) -> some View {
+        NavigationLink {
+            destination()
+        } label: {
+            MLCard {
+                HStack {
+                    Image(systemName: icon).foregroundStyle(tint)
+                    Text(title).font(MLFont.heading(17)).foregroundStyle(Color.mlTextPrimary)
+                    Spacer()
+                    Image(systemName: "chevron.right").foregroundStyle(Color.mlTextTertiary)
+                }
+            }
         }
     }
 

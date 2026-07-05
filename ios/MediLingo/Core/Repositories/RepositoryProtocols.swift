@@ -33,6 +33,8 @@ protocol GamificationRepositoryProtocol {
     func getUnlockedAchievements() async throws -> Set<UUID>
     func checkAndUnlockAchievements() async throws -> [Achievement]
     func getLeagueStandings() async throws -> LeagueStandings
+    func getShopItems() async throws -> [ShopItem]
+    func purchase(itemID: UUID) async throws -> UserStats
 }
 
 protocol FlashcardRepositoryProtocol {

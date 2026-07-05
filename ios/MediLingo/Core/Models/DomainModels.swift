@@ -270,6 +270,24 @@ enum PurchaseResult: Sendable {
     case success, cancelled, pending, failed
 }
 
+// MARK: - Shop
+
+struct ShopItem: Identifiable, Sendable {
+    let id: UUID
+    let slug: String
+    var title: String
+    var description: String
+    var category: String
+    var priceGems: Int
+    var owned: Int
+    var maxOwned: Int?
+
+    var canBuyMore: Bool {
+        guard let maxOwned else { return true }
+        return owned < maxOwned
+    }
+}
+
 // MARK: - Clinical case (route payload)
 
 struct ClinicalCase: Identifiable, Hashable, Sendable {

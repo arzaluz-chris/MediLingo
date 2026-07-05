@@ -1,6 +1,35 @@
 {
   "sourceLanguage" : "es",
   "strings" : {
+    "¡Te quedaste sin corazones!" : {
+
+    },
+    "%@" : {
+
+    },
+    "%@ min · %@ XP" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ min · %2$@ XP"
+          }
+        }
+      }
+    },
+    "%@/%@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@/%2$@"
+          }
+        }
+      }
+    },
+    "%@%%" : {
+
+    },
     "Aprender" : {
       "comment" : "Learn tab title",
       "extractionState" : "manual"
@@ -21,13 +50,35 @@
       "comment" : "Sign in button",
       "extractionState" : "manual"
     },
-    "Inicio" : {
-      "comment" : "Home tab title",
-      "extractionState" : "manual"
+    "Escuché: \"%@\"" : {
+
+    },
+    "Espera a que se recarguen o hazte Premium para corazones ilimitados." : {
+
     },
     "Inglés médico para profesionales de la salud" : {
       "comment" : "Auth screen tagline",
       "extractionState" : "manual"
+    },
+    "Inicio" : {
+      "comment" : "Home tab title",
+      "extractionState" : "manual"
+    },
+    "MediLingo" : {
+
+    },
+    "Misiones de hoy" : {
+
+    },
+    "Nivel %@ · %@ XP" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Nivel %1$@ · %2$@ XP"
+          }
+        }
+      }
     },
     "Perfil" : {
       "comment" : "Profile tab title",
@@ -36,6 +87,9 @@
     "Repaso" : {
       "comment" : "Flashcard review tab title",
       "extractionState" : "manual"
+    },
+    "Vocabulario" : {
+
     }
   },
   "version" : "1.0"

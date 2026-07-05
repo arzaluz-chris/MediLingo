@@ -39,6 +39,8 @@ struct StubGamificationRepository: GamificationRepositoryProtocol {
     func getLeagueStandings() async throws -> LeagueStandings {
         LeagueStandings(tier: "bronze", members: [])
     }
+    func getShopItems() async throws -> [ShopItem] { [] }
+    func purchase(itemID: UUID) async throws -> UserStats { .empty }
 }
 
 struct StubProfileRepository: ProfileRepositoryProtocol {

@@ -130,8 +130,47 @@ struct SupabaseGamificationRepository: GamificationRepositoryProtocol {
     }
 
     func getLeagueStandings() async throws -> LeagueStandings {
-        // TODO(phase-2): leagues are post-MVP.
+        // TODO(phase-4): leagues are post-MVP.
         LeagueStandings(tier: "bronze", members: [])
+    }
+
+    func getShopItems() async throws -> [ShopItem] {
+        let uid = try await currentUserID()
+        let items: [ShopItemRow] = try await client
+            .from("shop_items").select().eq("is_available", value: true).order("sort_order")
+            .execute().value
+        let inventory: [InventoryRow] = try await client
+            .from("user_inventory").select("item_id, quantity").eq("user_id", value: uid)
+            .execute().value
+        let owned = Dictionary(inventory.map { ($0.item_id, $0.quantity) }, uniquingKeysWith: +)
+        return items.map { $0.toDomain(owned: owned[$0.id] ?? 0) }
+    }
+
+    func purchase(itemID: UUID) async throws -> UserStats {
+        let uid = try await currentUserID()
+        let itemRows: [ShopItemRow] = try await client
+            .from("shop_items").select().eq("id", value: itemID).limit(1).execute().value
+        guard let item = itemRows.first else { throw AppError.contentNotFound }
+
+        var stats = try await getUserStats()
+        guard stats.gems >= item.price_gems else { throw AppError.insufficientGems }
+
+        // Deduct gems.
+        let newGems = stats.gems - item.price_gems
+        try await client.from("user_stats").update(["gems": newGems]).eq("user_id", value: uid).execute()
+        stats.gems = newGems
+
+        // Add to inventory (increment quantity if already owned).
+        let existing: [InventoryRow] = try await client
+            .from("user_inventory").select("item_id, quantity").eq("user_id", value: uid).eq("item_id", value: itemID).limit(1)
+            .execute().value
+        if let current = existing.first {
+            try await client.from("user_inventory")
+                .update(["quantity": current.quantity + 1]).eq("user_id", value: uid).eq("item_id", value: itemID).execute()
+        } else {
+            try await client.from("user_inventory").insert(InventoryInsert(user_id: uid, item_id: itemID, quantity: 1)).execute()
+        }
+        return stats
     }
 }
 
@@ -218,4 +257,29 @@ private struct UserQuestProgressRow: Decodable {
 private struct QuestProgressUpdate: Encodable {
     let current_value: Int
     let is_completed: Bool
+}
+
+private struct ShopItemRow: Decodable {
+    let id: UUID
+    let slug: String
+    let title: String
+    let description: String
+    let category: String
+    let price_gems: Int
+    let max_owned: Int?
+    func toDomain(owned: Int) -> ShopItem {
+        ShopItem(id: id, slug: slug, title: title, description: description,
+                 category: category, priceGems: price_gems, owned: owned, maxOwned: max_owned)
+    }
+}
+
+private struct InventoryRow: Decodable {
+    let item_id: UUID
+    let quantity: Int
+}
+
+private struct InventoryInsert: Encodable {
+    let user_id: UUID
+    let item_id: UUID
+    let quantity: Int
 }
