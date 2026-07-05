@@ -43,7 +43,8 @@ struct ExerciseContainerView: View {
         case .flashcard: FlashcardExerciseView(exercise: exercise, onComplete: onComplete)
         case .matching: MatchingView(exercise: exercise, onComplete: onComplete)
         case .typing: TypingView(exercise: exercise, onComplete: onComplete)
-        case .pronunciation, .rolePlaying, .aiConversation, .clinicalCase, .patientInterview, .memoryGame:
+        case .pronunciation: PronunciationExerciseView(exercise: exercise, onComplete: onComplete)
+        case .rolePlaying, .aiConversation, .clinicalCase, .patientInterview, .memoryGame:
             ExercisePlaceholderView(exercise: exercise, onComplete: onComplete)
         }
     }

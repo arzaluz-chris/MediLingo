@@ -17,7 +17,7 @@ extension AppDependencies {
             progressRepository: SupabaseProgressRepository(client: client),
             gamificationRepository: SupabaseGamificationRepository(client: client),
             flashcardRepository: SupabaseFlashcardRepository(client: client),
-            aiService: StubAIService(),
+            aiService: SupabaseAIService(client: client),
             audioService: AudioService(),
             speechService: SpeechService(),
             subscriptionService: StubSubscriptionService(),

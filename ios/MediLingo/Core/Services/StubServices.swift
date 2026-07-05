@@ -26,10 +26,10 @@ final class StubAIService: AIServiceProtocol {
     func sendMessage(conversationID: UUID, message: String) async throws -> AIResponse {
         throw AppError.notImplemented
     }
-    func evaluatePronunciation(audioData: Data, expectedText: String) async throws -> PronunciationResult {
+    func evaluatePronunciation(word: String, phonetic: String?, transcription: String, confidence: Double) async throws -> PronunciationResult {
         throw AppError.notImplemented
     }
-    func generateExplanation(exercise: Exercise, userAnswer: String) async throws -> String {
+    func generateExplanation(prompt: String, userAnswer: String, correctAnswer: String?, isCorrect: Bool) async throws -> String {
         throw AppError.notImplemented
     }
 }

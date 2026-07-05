@@ -19,8 +19,8 @@ protocol AuthServiceProtocol: Sendable {
 protocol AIServiceProtocol: Sendable {
     func startConversation(type: ConversationType, scenario: Scenario?) async throws -> AIConversation
     func sendMessage(conversationID: UUID, message: String) async throws -> AIResponse
-    func evaluatePronunciation(audioData: Data, expectedText: String) async throws -> PronunciationResult
-    func generateExplanation(exercise: Exercise, userAnswer: String) async throws -> String
+    func evaluatePronunciation(word: String, phonetic: String?, transcription: String, confidence: Double) async throws -> PronunciationResult
+    func generateExplanation(prompt: String, userAnswer: String, correctAnswer: String?, isCorrect: Bool) async throws -> String
 }
 
 protocol AudioServiceProtocol: Sendable {
