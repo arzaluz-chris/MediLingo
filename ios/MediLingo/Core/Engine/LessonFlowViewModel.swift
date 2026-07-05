@@ -40,6 +40,33 @@ final class LessonFlowViewModel {
         exercises.isEmpty ? 0 : Double(currentIndex) / Double(exercises.count)
     }
 
+    /// Record a result from an exercise view (which has already shown its own
+    /// correct/incorrect feedback) and advance. Returns immediately.
+    func record(_ result: ExerciseResult) {
+        if result.isCorrect {
+            correctCount += 1
+            xpEarned += result.xpEarned
+        } else {
+            incorrectCount += 1
+            hearts -= 1
+            if hearts <= 0 && !isPremium {
+                state = .outOfHearts
+                return
+            }
+            // Re-queue the missed exercise for another attempt later this lesson.
+            if currentIndex < exercises.count {
+                exercises.append(exercises[currentIndex])
+            }
+        }
+        advanceToNext()
+    }
+
+    var isPerfect: Bool { incorrectCount == 0 }
+    var accuracy: Double {
+        let total = correctCount + incorrectCount
+        return total == 0 ? 0 : Double(correctCount) / Double(total)
+    }
+
     func handleExerciseResult(_ result: ExerciseResult) async {
         if result.isCorrect {
             correctCount += 1

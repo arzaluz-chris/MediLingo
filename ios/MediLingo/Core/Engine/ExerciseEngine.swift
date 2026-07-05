@@ -25,14 +25,27 @@ protocol ExerciseEngineProtocol: Observable {
     func skip()
 }
 
-// Routes an Exercise to its type-specific view. Phase 0 renders a generic
-// placeholder for every type; concrete `Types/*View.swift` land in Phase 1.
+// Routes an Exercise to its type-specific view (CLAUDE-ios.md § Exercise Engine).
+// The 9 MVP types have dedicated views; heavier AI/game types fall back to a
+// generic placeholder until implemented in a later phase.
 struct ExerciseContainerView: View {
     let exercise: Exercise
     let onComplete: (ExerciseResult) -> Void
 
     var body: some View {
-        ExercisePlaceholderView(exercise: exercise, onComplete: onComplete)
+        switch exercise.type {
+        case .multipleChoice: MultipleChoiceView(exercise: exercise, onComplete: onComplete)
+        case .imageSelection: ImageSelectionView(exercise: exercise, onComplete: onComplete)
+        case .listening: ListeningView(exercise: exercise, onComplete: onComplete)
+        case .fillInBlank: FillInBlankView(exercise: exercise, onComplete: onComplete)
+        case .translation: TranslationView(exercise: exercise, onComplete: onComplete)
+        case .sentenceOrdering: SentenceOrderingView(exercise: exercise, onComplete: onComplete)
+        case .flashcard: FlashcardExerciseView(exercise: exercise, onComplete: onComplete)
+        case .matching: MatchingView(exercise: exercise, onComplete: onComplete)
+        case .typing: TypingView(exercise: exercise, onComplete: onComplete)
+        case .pronunciation, .rolePlaying, .aiConversation, .clinicalCase, .patientInterview, .memoryGame:
+            ExercisePlaceholderView(exercise: exercise, onComplete: onComplete)
+        }
     }
 }
 
