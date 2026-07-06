@@ -31,16 +31,31 @@ final class SupabaseAuthService: AuthServiceProtocol {
         return mapUser(response.user)
     }
 
-    // MARK: OAuth (scaffolded)
+    // MARK: OAuth
 
     func signInWithApple() async throws -> User {
-        // TODO(phase-1): ASAuthorizationController → client.auth.signInWithIdToken(.apple).
-        throw AppError.notImplemented
+        // Native Sign in with Apple: get the identity token + raw nonce, then
+        // exchange it for a Supabase session.
+        let credential = try await AppleSignInCoordinator().signIn()
+        let session = try await client.auth.signInWithIdToken(credentials: .init(
+            provider: .apple,
+            idToken: credential.identityToken,
+            nonce: credential.rawNonce,
+        ))
+        // Apple only returns the name on first authorization; persist it if present.
+        if let name = credential.fullName, !name.isEmpty {
+            try? await client.auth.update(user: UserAttributes(data: ["full_name": .string(name)]))
+        }
+        return mapUser(session.user)
     }
 
     func signInWithGoogle() async throws -> User {
-        // TODO(phase-1): Google credential → client.auth.signInWithIdToken(.google).
-        throw AppError.notImplemented
+        // Web OAuth via ASWebAuthenticationSession (managed by supabase-swift).
+        let session = try await client.auth.signInWithOAuth(
+            provider: .google,
+            redirectTo: URL(string: "com.medilingo.app://callback"),
+        )
+        return mapUser(session.user)
     }
 
     // MARK: Session

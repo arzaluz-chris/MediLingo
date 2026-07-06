@@ -28,9 +28,20 @@ struct RootView: View {
             isAuthenticated = dependencies.authService.isAuthenticated
             if isAuthenticated { await loadOnboarding() }
         }
+        .onChange(of: onboardingComplete) { _, complete in
+            if complete == true { Task { await scheduleStreakReminder() } }
+        }
     }
 
     private func loadOnboarding() async {
         onboardingComplete = (try? await dependencies.profileRepository.isOnboardingComplete()) ?? false
+    }
+
+    /// Ask for notification permission once the user is in the app and schedule
+    /// a daily 7pm streak reminder (docs/GAMIFICATION.md § Streaks).
+    private func scheduleStreakReminder() async {
+        let service = dependencies.notificationService
+        guard await service.requestAuthorization() else { return }
+        await service.scheduleStreakReminder(hour: 19, minute: 0)
     }
 }

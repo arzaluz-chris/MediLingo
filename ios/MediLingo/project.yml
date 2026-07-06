@@ -60,6 +60,11 @@ targets:
         # Provide real values via Resources/Secrets.xcconfig (see .example). AppConfig reads these Info keys.
         INFOPLIST_KEY_SupabaseURL: "$(SUPABASE_URL)"
         INFOPLIST_KEY_SupabaseAnonKey: "$(SUPABASE_ANON_KEY)"
+    entitlements:
+      path: MediLingo.entitlements
+      properties:
+        com.apple.developer.applesignin:
+          - Default
     dependencies:
       - package: Supabase
         product: Supabase
@@ -73,3 +78,21 @@ targets:
         product: FirebaseAnalytics
       - package: Firebase
         product: FirebaseCrashlytics
+
+schemes:
+  MediLingo:
+    build:
+      targets:
+        MediLingo: all
+    run:
+      config: Debug
+      # Local StoreKit testing without App Store Connect.
+      storeKitConfiguration: Resources/Products.storekit
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

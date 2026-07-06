@@ -10,6 +10,7 @@ enum AppError: LocalizedError {
 
     // Auth
     case authenticationRequired
+    case authenticationFailed
     case sessionExpired
     case accountDeleted
     case notImplemented
@@ -43,6 +44,8 @@ enum AppError: LocalizedError {
             return "The request timed out. Please try again."
         case .authenticationRequired:
             return "Please sign in to continue."
+        case .authenticationFailed:
+            return "Sign in failed. Please try again."
         case .sessionExpired:
             return "Your session expired. Please sign in again."
         case .accountDeleted:

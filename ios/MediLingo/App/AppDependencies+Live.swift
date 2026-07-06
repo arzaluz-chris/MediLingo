@@ -4,6 +4,9 @@ import Supabase
 // Live wiring. The only place the Supabase client is constructed. Auth is real;
 // the remaining services/repositories are Phase-0 stubs (swap incrementally).
 extension AppDependencies {
+    // @MainActor: constructs StoreKitSubscriptionService, whose init starts the
+    // main-actor transaction listener. Called from the @main App (main actor).
+    @MainActor
     static func live() -> AppDependencies {
         let client = SupabaseClient(
             supabaseURL: AppConfig.supabaseURL,
@@ -20,7 +23,7 @@ extension AppDependencies {
             aiService: SupabaseAIService(client: client),
             audioService: AudioService(),
             speechService: SpeechService(),
-            subscriptionService: StubSubscriptionService(),
+            subscriptionService: StoreKitSubscriptionService(),
             analyticsService: StubAnalyticsService(),
             syncService: StubSyncService(),
         )

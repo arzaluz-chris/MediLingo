@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 
 // Sound-effect catalog (CLAUDE-ios.md § Sound Effects).
@@ -29,11 +30,40 @@ enum MLSound {
     }
 }
 
-// Plays short sound effects. Phase 0: no-op until audio assets are added to
-// Resources. Wire AVAudioPlayer against `sound.filename` in Phase 1.
+// Plays short sound effects from Resources/Sounds. Degrades silently when the
+// asset is missing (so the app is fully functional before audio ships) and
+// respects the user's silent switch via the ambient audio session.
+@MainActor
 enum MLSoundPlayer {
+    private static var players: [String: AVAudioPlayer] = [:]
+    private static var sessionConfigured = false
+    static var isEnabled = true
+
     static func play(_ sound: MLSound) {
-        // TODO(phase-1): load Resources/Sounds/<filename> and play.
-        _ = sound.filename
+        guard isEnabled else { return }
+        guard let player = player(for: sound) else { return }
+        configureSessionIfNeeded()
+        player.currentTime = 0
+        player.play()
+    }
+
+    private static func player(for sound: MLSound) -> AVAudioPlayer? {
+        if let cached = players[sound.filename] { return cached }
+        let name = (sound.filename as NSString).deletingPathExtension
+        let ext = (sound.filename as NSString).pathExtension
+        // Look in a Sounds/ subdirectory first, then the bundle root.
+        let url = Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "Sounds")
+            ?? Bundle.main.url(forResource: name, withExtension: ext)
+        guard let url, let player = try? AVAudioPlayer(contentsOf: url) else { return nil }
+        player.prepareToPlay()
+        players[sound.filename] = player
+        return player
+    }
+
+    private static func configureSessionIfNeeded() {
+        guard !sessionConfigured else { return }
+        sessionConfigured = true
+        try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default)
+        try? AVAudioSession.sharedInstance().setActive(true)
     }
 }

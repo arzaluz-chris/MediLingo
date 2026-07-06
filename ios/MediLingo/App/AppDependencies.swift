@@ -17,6 +17,7 @@ final class AppDependencies {
     let subscriptionService: SubscriptionServiceProtocol
     let analyticsService: AnalyticsServiceProtocol
     let syncService: SyncServiceProtocol
+    let notificationService: NotificationServiceProtocol
 
     init(
         authService: AuthServiceProtocol,
@@ -31,6 +32,7 @@ final class AppDependencies {
         subscriptionService: SubscriptionServiceProtocol,
         analyticsService: AnalyticsServiceProtocol,
         syncService: SyncServiceProtocol,
+        notificationService: NotificationServiceProtocol = NotificationService(),
     ) {
         self.authService = authService
         self.profileRepository = profileRepository
@@ -44,6 +46,7 @@ final class AppDependencies {
         self.subscriptionService = subscriptionService
         self.analyticsService = analyticsService
         self.syncService = syncService
+        self.notificationService = notificationService
     }
 
     /// All-stub container for previews and tests.

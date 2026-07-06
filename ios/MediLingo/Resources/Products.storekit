@@ -1,0 +1,74 @@
+{
+  "identifier" : "medilingo-products",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {
+    "_applicationInternalID" : "medilingo",
+    "_developerTeamID" : "MEDILINGO",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "medilingo-premium",
+      "localizations" : [],
+      "name" : "MediLingo Premium",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "9.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "medilingo.premium.monthly",
+          "introductoryOffer" : {
+            "internalID" : "medilingo.premium.monthly.trial",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "MediLingo Premium — monthly plan",
+              "displayName" : "Premium Mensual",
+              "locale" : "es_MX"
+            }
+          ],
+          "productID" : "com.medilingo.app.premium.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Premium Monthly",
+          "subscriptionGroupID" : "medilingo-premium",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "79.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "medilingo.premium.annual",
+          "introductoryOffer" : {
+            "internalID" : "medilingo.premium.annual.trial",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "MediLingo Premium — annual plan",
+              "displayName" : "Premium Anual",
+              "locale" : "es_MX"
+            }
+          ],
+          "productID" : "com.medilingo.app.premium.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Premium Annual",
+          "subscriptionGroupID" : "medilingo-premium",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
