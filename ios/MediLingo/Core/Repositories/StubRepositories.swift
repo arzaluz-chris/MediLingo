@@ -21,7 +21,7 @@ struct StubProgressRepository: ProgressRepositoryProtocol {
     func submitExerciseAttempt(_ attempt: ExerciseAttempt) async throws -> ExerciseResult {
         ExerciseResult(isCorrect: attempt.isCorrect, xpEarned: 0, explanation: nil)
     }
-    func completeLesson(lessonID: UUID, score: Double, xpEarned: Int) async throws {}
+    func completeLesson(lessonID: UUID, score: Double, perfect: Bool, timeMinutes: Int, exerciseCount: Int) async throws {}
     func getCompletedLessons(moduleID: UUID) async throws -> Set<UUID> { [] }
     func syncProgress() async throws {}
 }
@@ -32,7 +32,8 @@ struct StubGamificationRepository: GamificationRepositoryProtocol {
     func consumeHeart() async throws -> Int { 5 }
     func refillHearts() async throws -> Int { 5 }
     func getDailyQuests() async throws -> [DailyQuest] { [] }
-    func updateQuestProgress(questID: UUID, increment: Int) async throws {}
+    func updateQuestProgress(questType: String, increment: Int) async throws {}
+    func recordActivity(_ activity: String, amount: Int) async throws {}
     func getAchievements() async throws -> [Achievement] { [] }
     func getUnlockedAchievements() async throws -> Set<UUID> { [] }
     func checkAndUnlockAchievements() async throws -> [Achievement] { [] }

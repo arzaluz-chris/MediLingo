@@ -20,6 +20,18 @@ export const MVP_EXERCISE_TYPES = [
   "pronunciation",
 ] as const;
 
+// Daily quest types (mirror of daily_quests.quest_type CHECK).
+export const QUEST_TYPES = [
+  "complete_lessons",
+  "earn_xp",
+  "learn_words",
+  "perfect_lesson",
+  "review_flashcards",
+  "ai_conversation",
+  "streak",
+] as const;
+export type QuestType = (typeof QUEST_TYPES)[number];
+
 // Primary navigation for the CMS shell.
 export const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard" },

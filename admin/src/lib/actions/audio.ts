@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/server";
+import { assertAdmin } from "@/lib/auth";
 import type { ActionResult } from "@/lib/actions/content";
 
 const metaSchema = z.object({
@@ -15,6 +16,9 @@ const metaSchema = z.object({
 // Upload an audio file to the public `audio` bucket (service role bypasses
 // storage RLS) and create the audio_clips row. Returns NOT ok on any failure.
 export async function createAudioClip(formData: FormData): Promise<ActionResult> {
+  const denied = await assertAdmin();
+  if (denied) return { ok: false, error: denied };
+
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Audio file required" };
 
@@ -51,6 +55,9 @@ export async function createAudioClip(formData: FormData): Promise<ActionResult>
 }
 
 export async function toggleAudioPublish(id: string, isPublished: boolean): Promise<ActionResult> {
+  const denied = await assertAdmin();
+  if (denied) return { ok: false, error: denied };
+
   const supabase = createAdminClient();
   const { error } = await supabase.from("audio_clips").update({ is_published: isPublished }).eq("id", id);
   if (error) return { ok: false, error: error.message };
@@ -59,6 +66,9 @@ export async function toggleAudioPublish(id: string, isPublished: boolean): Prom
 }
 
 export async function deleteAudioClip(id: string): Promise<ActionResult> {
+  const denied = await assertAdmin();
+  if (denied) return { ok: false, error: denied };
+
   const supabase = createAdminClient();
   const { error } = await supabase.from("audio_clips").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };

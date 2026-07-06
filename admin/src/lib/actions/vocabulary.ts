@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/server";
+import { assertAdmin } from "@/lib/auth";
 import type { ActionResult } from "@/lib/actions/content";
 
 const schema = z.object({
@@ -16,6 +17,9 @@ const schema = z.object({
 });
 
 export async function createVocabulary(formData: FormData): Promise<ActionResult> {
+  const denied = await assertAdmin();
+  if (denied) return { ok: false, error: denied };
+
   const parsed = schema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
 
@@ -28,6 +32,9 @@ export async function createVocabulary(formData: FormData): Promise<ActionResult
 }
 
 export async function toggleVocabPublish(id: string, isPublished: boolean): Promise<ActionResult> {
+  const denied = await assertAdmin();
+  if (denied) return { ok: false, error: denied };
+
   const supabase = createAdminClient();
   const { error } = await supabase.from("vocabulary").update({ is_published: isPublished }).eq("id", id);
   if (error) return { ok: false, error: error.message };
@@ -36,6 +43,9 @@ export async function toggleVocabPublish(id: string, isPublished: boolean): Prom
 }
 
 export async function deleteVocabulary(id: string): Promise<ActionResult> {
+  const denied = await assertAdmin();
+  if (denied) return { ok: false, error: denied };
+
   const supabase = createAdminClient();
   const { error } = await supabase.from("vocabulary").delete().eq("id", id);
   if (error) return { ok: false, error: error.message };

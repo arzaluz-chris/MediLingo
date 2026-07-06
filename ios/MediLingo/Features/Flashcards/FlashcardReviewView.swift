@@ -15,7 +15,7 @@ struct FlashcardReviewView: View {
         }
         .task {
             if viewModel == nil {
-                viewModel = FlashcardReviewViewModel(flashcards: dependencies.flashcardRepository)
+                viewModel = FlashcardReviewViewModel(flashcards: dependencies.flashcardRepository, gamification: dependencies.gamificationRepository)
                 await viewModel?.load()
             }
         }

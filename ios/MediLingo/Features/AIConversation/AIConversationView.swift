@@ -24,7 +24,7 @@ struct AIConversationView: View {
         .navigationTitle("Práctica con IA")
         .task {
             if viewModel == nil {
-                viewModel = AIConversationViewModel(type: type, ai: dependencies.aiService)
+                viewModel = AIConversationViewModel(type: type, ai: dependencies.aiService, gamification: dependencies.gamificationRepository)
                 await viewModel?.start()
             }
         }

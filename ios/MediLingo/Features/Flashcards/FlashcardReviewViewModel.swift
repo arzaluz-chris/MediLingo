@@ -15,9 +15,11 @@ final class FlashcardReviewViewModel {
     var errorMessage: String?
 
     private let flashcards: FlashcardRepositoryProtocol
+    private let gamification: GamificationRepositoryProtocol
 
-    init(flashcards: FlashcardRepositoryProtocol) {
+    init(flashcards: FlashcardRepositoryProtocol, gamification: GamificationRepositoryProtocol) {
         self.flashcards = flashcards
+        self.gamification = gamification
     }
 
     var current: FlashcardItem? { index < cards.count ? cards[index] : nil }
@@ -42,5 +44,10 @@ final class FlashcardReviewViewModel {
         Task { try? await flashcards.submitReview(vocabularyID: card.vocabularyID, quality: rating.rawValue) }
         revealed = false
         index += 1
+        // Bump the "review flashcards" quest as the session completes.
+        if index >= cards.count, reviewedCount > 0 {
+            let reviewed = reviewedCount
+            Task { try? await gamification.recordActivity("review_flashcards", amount: reviewed) }
+        }
     }
 }

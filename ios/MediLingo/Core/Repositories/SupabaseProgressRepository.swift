@@ -38,30 +38,34 @@ struct SupabaseProgressRepository: ProgressRepositoryProtocol {
         return ExerciseResult(isCorrect: attempt.isCorrect, xpEarned: 0, explanation: nil)
     }
 
-    func completeLesson(lessonID: UUID, score: Double, xpEarned: Int) async throws {
+    func completeLesson(lessonID: UUID, score: Double, perfect: Bool,
+                        timeMinutes: Int, exerciseCount: Int) async throws {
         let uid = try await currentUserID()
 
-        // Upsert the lesson progress row (fires the streak trigger).
+        // The server derives authoritative XP from the published lesson row and
+        // updates counters + quest progress atomically. Read it back for the
+        // XP actually awarded so the progress row is consistent.
+        let stats: UserStatsRow = try await client
+            .rpc("record_lesson_completion", params: LessonCompletionParams(
+                p_lesson_id: lessonID.uuidString,
+                p_score: score,
+                p_perfect: perfect,
+                p_time_minutes: timeMinutes,
+                p_exercise_count: exerciseCount,
+            ))
+            .single().execute().value
+        _ = stats
+
+        // Upsert the lesson progress row (fires the streak trigger). XP mirrors
+        // the lesson's reward for local display; the RPC is the source of truth.
         let progress = ProgressUpsert(
             user_id: uid, entity_type: "lesson", entity_id: lessonID,
-            status: "completed", score: score, xp_earned: xpEarned,
+            status: "completed", score: score, xp_earned: 0,
             completed_at: ISO8601DateFormatter().string(from: Date()),
         )
         try await client.from("user_progress")
             .upsert(progress, onConflict: "user_id,entity_type,entity_id")
             .execute()
-
-        // Update aggregate stats: XP + weekly XP + lessons completed.
-        let stats: [UserStatsMini] = try await client
-            .from("user_stats").select("total_xp,weekly_xp,lessons_completed")
-            .eq("user_id", value: uid).limit(1)
-            .execute().value
-        let current = stats.first ?? UserStatsMini(total_xp: 0, weekly_xp: 0, lessons_completed: 0)
-        try await client.from("user_stats").update([
-            "total_xp": current.total_xp + xpEarned,
-            "weekly_xp": current.weekly_xp + xpEarned,
-            "lessons_completed": current.lessons_completed + 1,
-        ]).eq("user_id", value: uid).execute()
     }
 
     func getCompletedLessons(moduleID: UUID) async throws -> Set<UUID> {
@@ -87,9 +91,17 @@ private struct ProgressRow: Decodable {
     let xp_earned: Int
 }
 
-private struct UserStatsMini: Decodable {
+private struct LessonCompletionParams: Encodable {
+    let p_lesson_id: String
+    let p_score: Double
+    let p_perfect: Bool
+    let p_time_minutes: Int
+    let p_exercise_count: Int
+}
+
+// Minimal projection of the user_stats row returned by record_lesson_completion.
+private struct UserStatsRow: Decodable {
     let total_xp: Int
-    let weekly_xp: Int
     let lessons_completed: Int
 }
 

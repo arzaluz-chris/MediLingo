@@ -4,13 +4,15 @@ import SwiftUI
 struct LessonFlowView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: LessonFlowViewModel
-    /// Called when the lesson completes, with (xpEarned, accuracy 0…1).
-    let onFinish: (Int, Double) -> Void
+    /// Called when the lesson completes, with the full lesson summary.
+    let onFinish: (LessonFlowViewModel.Summary) -> Void
 
     init(lesson: Lesson, exercises: [Exercise], hearts: Int, isPremium: Bool,
-         onFinish: @escaping (Int, Double) -> Void = { _, _ in }) {
+         onHeartLost: @escaping @Sendable () async -> Void = {},
+         onFinish: @escaping (LessonFlowViewModel.Summary) -> Void = { _ in }) {
         _viewModel = State(initialValue: LessonFlowViewModel(
             lesson: lesson, exercises: exercises, hearts: hearts, isPremium: isPremium,
+            onHeartLost: onHeartLost,
         ))
         self.onFinish = onFinish
     }
@@ -51,7 +53,7 @@ struct LessonFlowView: View {
                 accuracy: viewModel.accuracy,
                 isPerfect: viewModel.isPerfect,
             ) {
-                onFinish(viewModel.xpEarned, viewModel.accuracy)
+                onFinish(viewModel.summary)
                 dismiss()
             }
         }

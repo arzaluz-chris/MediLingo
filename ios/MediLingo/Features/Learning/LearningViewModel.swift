@@ -52,9 +52,27 @@ final class LearningViewModel {
         }
     }
 
-    /// Persist completion: updates progress + XP + lessons_completed and bumps
-    /// the streak (server trigger on user_progress).
-    func completeLesson(_ lesson: Lesson, xp: Int, accuracy: Double) async {
-        try? await progress.completeLesson(lessonID: lesson.id, score: accuracy, xpEarned: xp)
+    /// Server-side heart decrement on a wrong answer (fire-and-forget).
+    func consumeHeart() async {
+        _ = try? await gamification.consumeHeart()
+    }
+
+    /// Persist completion via the record_lesson_completion RPC (authoritative
+    /// XP + counters + quest progress, server-side), then unlock any newly
+    /// earned achievements. Newly unlocked achievements surface to the UI.
+    var newlyUnlocked: [Achievement] = []
+    func completeLesson(_ summary: LessonFlowViewModel.Summary) async {
+        do {
+            try await progress.completeLesson(
+                lessonID: summary.lessonID,
+                score: summary.score,
+                perfect: summary.isPerfect,
+                timeMinutes: summary.timeMinutes,
+                exerciseCount: summary.exerciseCount,
+            )
+            newlyUnlocked = try await gamification.checkAndUnlockAchievements()
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
     }
 }

@@ -18,11 +18,14 @@ final class AIConversationViewModel {
     var errorMessage: String?
 
     private let ai: AIServiceProtocol
+    private let gamification: GamificationRepositoryProtocol
     private var conversationID: UUID?
+    private var activityRecorded = false
 
-    init(type: ConversationType, ai: AIServiceProtocol) {
+    init(type: ConversationType, ai: AIServiceProtocol, gamification: GamificationRepositoryProtocol) {
         self.type = type
         self.ai = ai
+        self.gamification = gamification
     }
 
     var canSend: Bool { !input.trimmingCharacters(in: .whitespaces).isEmpty && !isSending }
@@ -44,6 +47,11 @@ final class AIConversationViewModel {
         do {
             let response = try await ai.sendMessage(conversationID: id, message: text)
             messages.append(Message(role: .assistant, text: response.content))
+            // Count the conversation once (bumps ai_conversations + its quest).
+            if !activityRecorded {
+                activityRecorded = true
+                try? await gamification.recordActivity("ai_conversation", amount: 1)
+            }
         } catch {
             errorMessage = "La IA no está disponible. Configura GEMINI_API_KEY."
         }

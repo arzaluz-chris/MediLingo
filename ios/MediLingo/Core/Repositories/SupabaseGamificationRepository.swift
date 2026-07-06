@@ -1,8 +1,10 @@
 import Foundation
 import Supabase
 
-// Supabase-backed gamification. XP/heart mutations are read-modify-write for
-// Phase 1; move to atomic RPCs (and server-side XP verification) in Phase 3.
+// Supabase-backed gamification. Every balance mutation (XP, hearts, gems,
+// quests, achievements, leagues) goes through a SECURITY DEFINER RPC keyed on
+// auth.uid(); the client's user_stats/user_inventory/user_daily_quests rows are
+// SELECT-only under RLS, so direct writes are impossible by design.
 struct SupabaseGamificationRepository: GamificationRepositoryProtocol {
     let client: SupabaseClient
 
@@ -19,85 +21,53 @@ struct SupabaseGamificationRepository: GamificationRepositoryProtocol {
     }
 
     func addXP(_ amount: Int) async throws -> UserStats {
-        let uid = try await currentUserID()
-        var stats = try await getUserStats()
-        let newXP = stats.totalXP + amount
-        let newWeekly = stats.weeklyXP + amount
-        try await client.from("user_stats")
-            .update(["total_xp": newXP, "weekly_xp": newWeekly])
-            .eq("user_id", value: uid)
-            .execute()
-        stats.totalXP = newXP
-        stats.weeklyXP = newWeekly
-        return stats
+        // Server clamps, updates total/weekly XP + derived level + league tally.
+        let row: UserStatsRow = try await client
+            .rpc("add_xp", params: ["p_amount": amount])
+            .single().execute().value
+        return row.toDomain()
     }
 
     func consumeHeart() async throws -> Int {
-        let uid = try await currentUserID()
-        let stats = try await getUserStats()
-        let remaining = max(0, stats.hearts - 1)
-        try await client.from("user_stats")
-            .update(["hearts": remaining])
-            .eq("user_id", value: uid)
-            .execute()
-        return remaining
+        // Server decrements (premium users keep unlimited hearts) and returns the count.
+        try await client.rpc("consume_heart").execute().value
     }
 
     func refillHearts() async throws -> Int {
-        let uid = try await currentUserID()
-        // Server function applies the "1 heart / 4h" refill and returns the new count.
-        let hearts: Int = try await client
-            .rpc("refill_hearts", params: ["p_user_id": uid.uuidString])
-            .execute().value
-        return hearts
+        // Server applies the "1 heart / 4h" refill and returns the new count.
+        try await client.rpc("refill_hearts").execute().value
     }
 
     func getDailyQuests() async throws -> [DailyQuest] {
         let uid = try await currentUserID()
         let today = Self.dateFormatter.string(from: Date())
 
-        // Assigned quests for today (joined with the quest definition).
-        var assigned: [UserQuestRow] = try await client
+        // Server assigns 3 random active quests on first read of the day; we
+        // ignore its bare return and re-read joined with the quest definitions.
+        _ = try await client.rpc("get_or_assign_daily_quests").execute()
+
+        let assigned: [UserQuestRow] = try await client
             .from("user_daily_quests")
             .select("id, current_value, is_completed, quest_id, daily_quests(id, title, description, quest_type, target_value)")
             .eq("user_id", value: uid)
             .eq("quest_date", value: today)
             .execute().value
-
-        // First visit today → assign 3 random active quests.
-        if assigned.isEmpty {
-            let pool: [QuestRow] = try await client
-                .from("daily_quests").select("id, title, description, quest_type, target_value")
-                .eq("is_active", value: true)
-                .execute().value
-            let picks = Array(pool.shuffled().prefix(3))
-            if !picks.isEmpty {
-                let rows = picks.map { AssignQuest(user_id: uid, quest_id: $0.id, quest_date: today) }
-                try await client.from("user_daily_quests").insert(rows).execute()
-                assigned = try await client
-                    .from("user_daily_quests")
-                    .select("id, current_value, is_completed, quest_id, daily_quests(id, title, description, quest_type, target_value)")
-                    .eq("user_id", value: uid).eq("quest_date", value: today)
-                    .execute().value
-            }
-        }
         return assigned.compactMap { $0.toDomain() }
     }
 
-    func updateQuestProgress(questID: UUID, increment: Int) async throws {
-        let uid = try await currentUserID()
-        let today = Self.dateFormatter.string(from: Date())
-        let rows: [UserQuestProgressRow] = try await client
-            .from("user_daily_quests")
-            .select("id, current_value, quest_id, daily_quests(target_value)")
-            .eq("user_id", value: uid).eq("quest_date", value: today).eq("quest_id", value: questID)
-            .execute().value
-        guard let row = rows.first else { return }
-        let newValue = row.current_value + increment
-        let completed = newValue >= (row.daily_quests?.target_value ?? Int.max)
-        try await client.from("user_daily_quests")
-            .update(QuestProgressUpdate(current_value: newValue, is_completed: completed))
-            .eq("id", value: row.id)
+    func updateQuestProgress(questType: String, increment: Int) async throws {
+        // Server bumps today's incomplete quests of this type and auto-awards
+        // xp/gems on completion.
+        _ = try await client
+            .rpc("update_quest_progress", params: QuestProgressParams(p_quest_type: questType, p_increment: increment))
+            .execute()
+    }
+
+    func recordActivity(_ activity: String, amount: Int) async throws {
+        // Server updates the relevant counter (words_learned / ai_conversations)
+        // and bumps the matching quest progress in one round-trip.
+        _ = try await client
+            .rpc("record_activity", params: ActivityParams(p_activity: activity, p_amount: amount))
             .execute()
     }
 
@@ -125,13 +95,38 @@ struct SupabaseGamificationRepository: GamificationRepositoryProtocol {
     }
 
     func checkAndUnlockAchievements() async throws -> [Achievement] {
-        // TODO(phase-2): call the check-achievements Edge Function.
-        []
+        // Server evaluates stat-based requirements, inserts unlocks, awards
+        // their rewards, and returns only the newly unlocked rows.
+        let rows: [AchievementRow] = try await client
+            .rpc("check_achievements").execute().value
+        return rows.map { $0.toDomain(isUnlocked: true) }
     }
 
     func getLeagueStandings() async throws -> LeagueStandings {
-        // TODO(phase-4): leagues are post-MVP.
-        LeagueStandings(tier: "bronze", members: [])
+        // Seat the user in an active cohort of their tier (idempotent), then
+        // read that cohort's members ranked by weekly XP.
+        let leagueID: UUID = try await client.rpc("join_league").single().execute().value
+
+        let league: LeagueTierRow = try await client
+            .from("leagues").select("tier").eq("id", value: leagueID).single()
+            .execute().value
+
+        let rows: [LeagueMemberRow] = try await client
+            .from("league_members")
+            .select("user_id, weekly_xp, rank, profiles(display_name)")
+            .eq("league_id", value: leagueID)
+            .order("weekly_xp", ascending: false)
+            .execute().value
+
+        let members = rows.enumerated().map { index, row in
+            LeagueMember(
+                id: row.user_id,
+                displayName: row.profiles?.display_name ?? "",
+                weeklyXP: row.weekly_xp,
+                rank: row.rank ?? index + 1,
+            )
+        }
+        return LeagueStandings(tier: league.tier, members: members)
     }
 
     func getShopItems() async throws -> [ShopItem] {
@@ -147,30 +142,12 @@ struct SupabaseGamificationRepository: GamificationRepositoryProtocol {
     }
 
     func purchase(itemID: UUID) async throws -> UserStats {
-        let uid = try await currentUserID()
-        let itemRows: [ShopItemRow] = try await client
-            .from("shop_items").select().eq("id", value: itemID).limit(1).execute().value
-        guard let item = itemRows.first else { throw AppError.contentNotFound }
-
-        var stats = try await getUserStats()
-        guard stats.gems >= item.price_gems else { throw AppError.insufficientGems }
-
-        // Deduct gems.
-        let newGems = stats.gems - item.price_gems
-        try await client.from("user_stats").update(["gems": newGems]).eq("user_id", value: uid).execute()
-        stats.gems = newGems
-
-        // Add to inventory (increment quantity if already owned).
-        let existing: [InventoryRow] = try await client
-            .from("user_inventory").select("item_id, quantity").eq("user_id", value: uid).eq("item_id", value: itemID).limit(1)
-            .execute().value
-        if let current = existing.first {
-            try await client.from("user_inventory")
-                .update(["quantity": current.quantity + 1]).eq("user_id", value: uid).eq("item_id", value: itemID).execute()
-        } else {
-            try await client.from("user_inventory").insert(InventoryInsert(user_id: uid, item_id: itemID, quantity: 1)).execute()
-        }
-        return stats
+        // Atomic server purchase: row lock, price/max-owned checks, gem deduct,
+        // inventory upsert, immediate power-up effects. Returns updated stats.
+        let row: UserStatsRow = try await client
+            .rpc("purchase_item", params: ["p_item_id": itemID.uuidString])
+            .single().execute().value
+        return row.toDomain()
     }
 }
 
@@ -239,24 +216,25 @@ private struct UserQuestRow: Decodable {
     }
 }
 
-private struct AssignQuest: Encodable {
+private struct QuestProgressParams: Encodable {
+    let p_quest_type: String
+    let p_increment: Int
+}
+
+private struct ActivityParams: Encodable {
+    let p_activity: String
+    let p_amount: Int
+}
+
+private struct LeagueTierRow: Decodable { let tier: String }
+
+private struct ProfileNameRow: Decodable { let display_name: String }
+
+private struct LeagueMemberRow: Decodable {
     let user_id: UUID
-    let quest_id: UUID
-    let quest_date: String
-}
-
-private struct QuestTargetRow: Decodable { let target_value: Int }
-
-private struct UserQuestProgressRow: Decodable {
-    let id: UUID
-    let current_value: Int
-    let quest_id: UUID
-    let daily_quests: QuestTargetRow?
-}
-
-private struct QuestProgressUpdate: Encodable {
-    let current_value: Int
-    let is_completed: Bool
+    let weekly_xp: Int
+    let rank: Int?
+    let profiles: ProfileNameRow?
 }
 
 private struct ShopItemRow: Decodable {
@@ -274,12 +252,6 @@ private struct ShopItemRow: Decodable {
 }
 
 private struct InventoryRow: Decodable {
-    let item_id: UUID
-    let quantity: Int
-}
-
-private struct InventoryInsert: Encodable {
-    let user_id: UUID
     let item_id: UUID
     let quantity: Int
 }

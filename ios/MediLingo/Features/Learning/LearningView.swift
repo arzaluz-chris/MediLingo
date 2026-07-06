@@ -38,8 +38,9 @@ struct LearningView: View {
                 exercises: item.exercises,
                 hearts: item.hearts,
                 isPremium: dependencies.subscriptionService.isPremium,
-            ) { xp, accuracy in
-                Task { await viewModel?.completeLesson(item.lesson, xp: xp, accuracy: accuracy) }
+                onHeartLost: { [weak viewModel] in await viewModel?.consumeHeart() },
+            ) { summary in
+                Task { await viewModel?.completeLesson(summary) }
             }
         }
     }
