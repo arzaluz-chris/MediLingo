@@ -3,43 +3,86 @@ import Supabase
 
 // Supabase-backed content reads. Row DTOs use snake_case property names so they
 // decode directly from PostgREST responses; `toDomain()` maps to the app models.
-// Offline caching into SwiftData lands in a later phase (downloadLessonForOffline).
+// Every successful remote read is written through to the SwiftData cache; when
+// the network fails, reads fall back to the cache (offline-first, CLAUDE-ios.md).
 struct SupabaseContentRepository: ContentRepositoryProtocol {
     let client: SupabaseClient
+    let cache: ContentCacheStore
+
+    init(client: SupabaseClient, cache: ContentCacheStore? = nil) {
+        self.client = client
+        self.cache = cache ?? ContentCacheStore(modelContainer: AppModelContainer.shared)
+    }
 
     func fetchCourses() async throws -> [Course] {
-        let rows: [CourseRow] = try await client
-            .from("courses")
-            .select()
-            .eq("is_published", value: true)
-            .order("sort_order")
-            .execute().value
-        return rows.map { $0.toDomain() }
+        do {
+            let rows: [CourseRow] = try await client
+                .from("courses")
+                .select()
+                .eq("is_published", value: true)
+                .order("sort_order")
+                .execute().value
+            let courses = rows.map { $0.toDomain() }
+            await cache.saveCourses(courses)
+            return courses
+        } catch {
+            let cached = await cache.loadCourses()
+            guard !cached.isEmpty else { throw error }
+            return cached
+        }
     }
 
     func fetchModules(courseID: UUID) async throws -> [Module] {
-        let rows: [ModuleRow] = try await client
-            .from("modules")
-            .select()
-            .eq("course_id", value: courseID)
-            .eq("is_published", value: true)
-            .order("sort_order")
-            .execute().value
-        return rows.map { $0.toDomain() }
+        do {
+            let rows: [ModuleRow] = try await client
+                .from("modules")
+                .select()
+                .eq("course_id", value: courseID)
+                .eq("is_published", value: true)
+                .order("sort_order")
+                .execute().value
+            let modules = rows.map { $0.toDomain() }
+            await cache.saveModules(modules)
+            return modules
+        } catch {
+            let cached = await cache.loadModules(courseID: courseID)
+            guard !cached.isEmpty else { throw error }
+            return cached
+        }
     }
 
     func fetchLessons(moduleID: UUID) async throws -> [Lesson] {
-        let rows: [LessonRow] = try await client
-            .from("lessons")
-            .select()
-            .eq("module_id", value: moduleID)
-            .eq("is_published", value: true)
-            .order("sort_order")
-            .execute().value
-        return rows.map { $0.toDomain() }
+        do {
+            let rows: [LessonRow] = try await client
+                .from("lessons")
+                .select()
+                .eq("module_id", value: moduleID)
+                .eq("is_published", value: true)
+                .order("sort_order")
+                .execute().value
+            let lessons = rows.map { $0.toDomain() }
+            await cache.saveLessons(lessons)
+            return lessons
+        } catch {
+            let cached = await cache.loadLessons(moduleID: moduleID)
+            guard !cached.isEmpty else { throw error }
+            return cached
+        }
     }
 
     func fetchExercises(lessonID: UUID) async throws -> [Exercise] {
+        do {
+            let exercises = try await fetchExercisesRemote(lessonID: lessonID)
+            await cache.saveExercises(exercises)
+            return exercises
+        } catch {
+            let cached = await cache.loadExercises(lessonID: lessonID)
+            guard !cached.isEmpty else { throw error }
+            return cached
+        }
+    }
+
+    private func fetchExercisesRemote(lessonID: UUID) async throws -> [Exercise] {
         let rows: [ExerciseRow] = try await client
             .from("exercises")
             .select()
@@ -94,11 +137,20 @@ struct SupabaseContentRepository: ContentRepositoryProtocol {
     }
 
     func downloadLessonForOffline(lessonID: UUID) async throws {
-        // TODO(phase-2): fetch + persist into SwiftData Cached* models.
+        let exercises = try await fetchExercisesRemote(lessonID: lessonID)
+        await cache.saveExercises(exercises, markDownloaded: true)
     }
 
+    /// Refresh the whole published content tree into the cache (courses →
+    /// modules → lessons). Exercises download lazily per lesson.
     func syncContent() async throws {
-        // TODO(phase-2): pull rows updated since lastSyncedAt into the cache.
+        let courses = try await fetchCourses()
+        for course in courses {
+            let modules = try await fetchModules(courseID: course.id)
+            for module in modules {
+                _ = try await fetchLessons(moduleID: module.id)
+            }
+        }
     }
 }
 

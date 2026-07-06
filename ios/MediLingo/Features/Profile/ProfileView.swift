@@ -33,6 +33,7 @@ struct ProfileView: View {
                 VStack(spacing: MLSpacing.md) {
                     header(viewModel)
                     statGrid(viewModel)
+                    navLink("Logros", icon: "trophy.fill", tint: .mlGold) { AchievementsView() }
                     navLink("Vocabulario", icon: "text.book.closed.fill", tint: .mlSecondary) { VocabularyView() }
                     navLink("Práctica con IA", icon: "bubble.left.and.bubble.right.fill", tint: .mlInfo) { AIConversationView() }
                     navLink("Tienda", icon: "bag.fill", tint: .mlGems) { ShopView() }

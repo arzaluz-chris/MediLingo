@@ -5,15 +5,8 @@ import SwiftData
 struct MediLingoApp: App {
     @State private var dependencies = AppDependencies.live()
 
-    private let modelContainer: ModelContainer = {
-        do {
-            let schema = Schema(CachedSchema.models)
-            let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-            return try ModelContainer(for: schema, configurations: config)
-        } catch {
-            fatalError("Failed to create ModelContainer: \(error)")
-        }
-    }()
+    // Shared with the repository-layer cache actors (see AppModelContainer).
+    private let modelContainer = AppModelContainer.shared
 
     var body: some Scene {
         WindowGroup {
