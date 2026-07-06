@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  admin:
+    name: Admin (lint + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: admin/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm build
+        env:
+          # Real values are injected in the deploy env; build tolerates absence.
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-placeholder
+
+  schemas:
+    name: Shared schemas (JSON valid)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Validate every exercise schema parses
+        run: |
+          for f in shared/schemas/*.schema.json; do
+            node -e "JSON.parse(require('fs').readFileSync('$f','utf8')); console.log('ok: $f')"
+          done
+
+  supabase:
+    name: Supabase (migrations + seed reset)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local stack and apply migrations + seed
+        working-directory: supabase
+        run: |
+          supabase start
+          supabase db reset
+
+  ios:
+    name: iOS (xcodegen + build)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        working-directory: ios/MediLingo
+        run: xcodegen generate
+      - name: Build
+        working-directory: ios/MediLingo
+        run: |
+          xcodebuild -scheme MediLingo \
+            -destination 'generic/platform=iOS Simulator' \
+            -skipPackagePluginValidation \
+            build

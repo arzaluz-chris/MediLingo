@@ -2,7 +2,14 @@
 
 Cross-platform medical-English learning app for Spanish-speaking healthcare professionals. Gamified, AI-powered, content-driven. iOS-first (SwiftUI), Supabase backend, Next.js admin panel.
 
-> **Status:** Phase 0 Foundation scaffold. Buildable/runnable skeletons across all three subprojects; features are stubbed. See `docs/ROADMAP.md` for the full 16-week MVP plan.
+> **Status:** MVP feature-complete on iOS + backend + admin. The iOS app builds
+> and runs the full exercise engine, gamification (server-authoritative XP,
+> hearts, quests, achievements, leagues), StoreKit 2 subscriptions, native
+> Apple/Google sign-in, offline content cache, and referrals. Backend has 13
+> migrations, 8 Edge Functions, and a 10-module / 50-lesson / 210-exercise
+> curriculum (AI-drafted, pending physician validation). Admin CMS is fully
+> functional. Android is an auth-only skeleton (Phase 5). **Before it runs
+> against real services you must supply keys/accounts — see `SETUP.md`.**
 
 ## Repository layout
 
@@ -10,6 +17,7 @@ Cross-platform medical-English learning app for Spanish-speaking healthcare prof
 |------|------|
 | `ios/MediLingo/` | iOS app (SwiftUI, iOS 17+, MVVM + Repository + Service). Xcode project generated via XcodeGen. |
 | `admin/` | Next.js 14 App Router CMS (TypeScript, Tailwind, shadcn/ui, Supabase). |
+| `android/` | Android app (Kotlin/Compose). Auth-only skeleton (Phase 5). |
 | `supabase/` | Postgres migrations, RLS policies, seed data, Edge Functions. |
 | `shared/schemas/` | Exercise-type JSON schemas shared by iOS engine + admin. |
 | `docs/` | Vision, roadmap, gamification, monetization. |
@@ -41,6 +49,19 @@ xcodegen generate                  # produces MediLingo.xcodeproj
 open MediLingo.xcodeproj
 ```
 Provide `Resources/Secrets.xcconfig` (see `Resources/Secrets.xcconfig.example`) with `SUPABASE_URL`, `SUPABASE_ANON_KEY`, etc.
+
+### First admin (CMS login)
+`admin_users` starts empty. After signing up in the app/admin, promote yourself
+from the Supabase SQL editor (service role):
+```sql
+select public.promote_to_admin('you@example.com');
+```
+
+## What you must provide
+
+Everything runs locally against `supabase start` with no keys. To use real AI,
+subscriptions, OAuth, or a hosted deployment, you must supply your own
+accounts/keys — see **`SETUP.md`** for the full checklist.
 
 ## Conventions
 
