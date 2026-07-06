@@ -112,9 +112,14 @@ Deno.serve(async (req) => {
       { conversation_id: conversationId, role: "user", content: body.message },
       { conversation_id: conversationId, role: "assistant", content: result.content },
     ]);
+    // Count from the source of truth so it stays correct past MAX_HISTORY_TURNS.
+    const { count } = await supabase
+      .from("ai_messages")
+      .select("*", { count: "exact", head: true })
+      .eq("conversation_id", conversationId);
     await supabase
       .from("ai_conversations")
-      .update({ message_count: (history?.length ?? 0) + 2 })
+      .update({ message_count: count ?? 0 })
       .eq("id", conversationId);
 
     return new Response(
