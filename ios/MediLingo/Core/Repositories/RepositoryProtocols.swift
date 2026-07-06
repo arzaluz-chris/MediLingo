@@ -38,6 +38,10 @@ protocol GamificationRepositoryProtocol {
     func getLeagueStandings() async throws -> LeagueStandings
     func getShopItems() async throws -> [ShopItem]
     func purchase(itemID: UUID) async throws -> UserStats
+    /// The caller's shareable referral code (created on first request).
+    func getReferralCode() async throws -> String
+    /// Redeem someone else's code once; both parties receive gems. Returns true on success.
+    func redeemReferral(code: String) async throws -> Bool
 }
 
 protocol FlashcardRepositoryProtocol {

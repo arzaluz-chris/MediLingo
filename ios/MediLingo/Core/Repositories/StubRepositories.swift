@@ -42,6 +42,8 @@ struct StubGamificationRepository: GamificationRepositoryProtocol {
     }
     func getShopItems() async throws -> [ShopItem] { [] }
     func purchase(itemID: UUID) async throws -> UserStats { .empty }
+    func getReferralCode() async throws -> String { "MEDILINGO" }
+    func redeemReferral(code: String) async throws -> Bool { true }
 }
 
 struct StubProfileRepository: ProfileRepositoryProtocol {

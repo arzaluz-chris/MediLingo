@@ -37,6 +37,7 @@ struct ProfileView: View {
                     navLink("Vocabulario", icon: "text.book.closed.fill", tint: .mlSecondary) { VocabularyView() }
                     navLink("Práctica con IA", icon: "bubble.left.and.bubble.right.fill", tint: .mlInfo) { AIConversationView() }
                     navLink("Tienda", icon: "bag.fill", tint: .mlGems) { ShopView() }
+                    navLink("Invita y gana", icon: "gift.fill", tint: .mlGems) { ReferralView() }
                     MLButton(title: "Cerrar sesión", style: .outline) {
                         Task {
                             try? await dependencies.authService.signOut()

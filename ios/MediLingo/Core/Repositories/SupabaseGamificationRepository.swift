@@ -149,6 +149,16 @@ struct SupabaseGamificationRepository: GamificationRepositoryProtocol {
             .single().execute().value
         return row.toDomain()
     }
+
+    func getReferralCode() async throws -> String {
+        try await client.rpc("get_referral_code").execute().value
+    }
+
+    func redeemReferral(code: String) async throws -> Bool {
+        try await client
+            .rpc("redeem_referral", params: ["p_code": code])
+            .execute().value
+    }
 }
 
 // MARK: - Row DTOs
