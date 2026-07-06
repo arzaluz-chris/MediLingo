@@ -50,16 +50,24 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.medilingo.app
         PRODUCT_NAME: MediLingo
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
-        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
-        INFOPLIST_KEY_CFBundleDisplayName: MediLingo
-        INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "MediLingo uses speech recognition to evaluate your medical English pronunciation."
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: "MediLingo needs microphone access to practice speaking medical English."
+    # Explicit generated Info.plist so we can register the OAuth callback URL
+    # scheme (com.medilingo.app://) that Google sign-in redirects back through.
+    info:
+      path: Info.plist
+      properties:
+        UILaunchScreen: {}
+        CFBundleDisplayName: MediLingo
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSSpeechRecognitionUsageDescription: "MediLingo uses speech recognition to evaluate your medical English pronunciation."
+        NSMicrophoneUsageDescription: "MediLingo needs microphone access to practice speaking medical English."
         # Provide real values via Resources/Secrets.xcconfig (see .example). AppConfig reads these Info keys.
-        INFOPLIST_KEY_SupabaseURL: "$(SUPABASE_URL)"
-        INFOPLIST_KEY_SupabaseAnonKey: "$(SUPABASE_ANON_KEY)"
+        SupabaseURL: "$(SUPABASE_URL)"
+        SupabaseAnonKey: "$(SUPABASE_ANON_KEY)"
+        CFBundleURLTypes:
+          - CFBundleURLName: com.medilingo.app
+            CFBundleURLSchemes:
+              - com.medilingo.app
     entitlements:
       path: MediLingo.entitlements
       properties:

@@ -12,6 +12,8 @@ struct HomeView: View {
                 .tabItem { Label("Aprender", systemImage: "book.fill") }
             FlashcardReviewView()
                 .tabItem { Label("Repaso", systemImage: "rectangle.on.rectangle.angled") }
+            SocialView()
+                .tabItem { Label("Liga", systemImage: "trophy.fill") }
             ProfileView(onSignOut: onSignOut)
                 .tabItem { Label("Perfil", systemImage: "person.fill") }
         }
