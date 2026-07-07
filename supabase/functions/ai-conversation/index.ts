@@ -7,10 +7,13 @@
 // the patient stays in character across the session.
 
 import { handleCorsPreflight, jsonHeaders } from "../_shared/cors.ts";
-import { getUser } from "../_shared/auth.ts";
+import { getUser, withinAIQuota } from "../_shared/auth.ts";
 import { chatWithFallback } from "../_shared/ai-provider.ts";
 import { fail, ok, type Message } from "../_shared/types.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+
+// Reject oversized turns before spending a provider call (cost/abuse guard).
+const MAX_MESSAGE_CHARS = 4000;
 
 const PATIENT_SYSTEM_PROMPT = `
 You are a patient in a medical consultation simulation for MediLingo,
@@ -48,6 +51,18 @@ Deno.serve(async (req) => {
   if (!body.message || typeof body.message !== "string") {
     return new Response(JSON.stringify(fail("BAD_REQUEST", "`message` is required.")), {
       status: 400, headers: jsonHeaders,
+    });
+  }
+  if (body.message.length > MAX_MESSAGE_CHARS) {
+    return new Response(JSON.stringify(fail("BAD_REQUEST", `\`message\` exceeds ${MAX_MESSAGE_CHARS} characters.`)), {
+      status: 400, headers: jsonHeaders,
+    });
+  }
+
+  // Rate limit: 40 turns/hour free, 400 premium.
+  if (!(await withinAIQuota(req, "ai_conversation", 40, 400, 3600))) {
+    return new Response(JSON.stringify(fail("RATE_LIMITED", "AI conversation limit reached. Try again later.")), {
+      status: 429, headers: jsonHeaders,
     });
   }
 

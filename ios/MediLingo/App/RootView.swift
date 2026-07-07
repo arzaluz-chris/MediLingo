@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // App root. Routes between auth → onboarding → the authenticated experience.
 struct RootView: View {
@@ -11,7 +12,10 @@ struct RootView: View {
             if !isAuthenticated {
                 AuthView(onAuthenticated: {
                     isAuthenticated = true
-                    Task { await loadOnboarding() }
+                    Task {
+                        await onSignedIn()
+                        await loadOnboarding()
+                    }
                 })
             } else if onboardingComplete == nil {
                 MLLoadingView()
@@ -29,7 +33,10 @@ struct RootView: View {
             // login + onboarding on relaunch.
             await dependencies.authService.restoreSession()
             isAuthenticated = dependencies.authService.isAuthenticated
-            if isAuthenticated { await loadOnboarding() }
+            if isAuthenticated {
+                await onSignedIn()
+                await loadOnboarding()
+            }
         }
         .onChange(of: onboardingComplete) { _, complete in
             if complete == true { Task { await scheduleStreakReminder() } }
@@ -38,6 +45,17 @@ struct RootView: View {
 
     private func loadOnboarding() async {
         onboardingComplete = (try? await dependencies.profileRepository.isOnboardingComplete()) ?? false
+    }
+
+    /// Post-authentication side effects: identify the user for analytics and
+    /// register for remote push (persists the APNs token via PushRegistrar).
+    private func onSignedIn() async {
+        if let userID = dependencies.authService.currentUser?.id.uuidString {
+            dependencies.analyticsService.setUser(userID)
+        }
+        dependencies.analyticsService.track(.appOpened)
+        guard await dependencies.notificationService.requestAuthorization() else { return }
+        await MainActor.run { UIApplication.shared.registerForRemoteNotifications() }
     }
 
     /// Ask for notification permission once the user is in the app and schedule

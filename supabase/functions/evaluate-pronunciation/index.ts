@@ -6,9 +6,12 @@
 // Gemini grades it against the expected word and returns structured JSON.
 
 import { handleCorsPreflight, jsonHeaders } from "../_shared/cors.ts";
-import { getUser } from "../_shared/auth.ts";
+import { getUser, withinAIQuota } from "../_shared/auth.ts";
 import { chatWithFallback } from "../_shared/ai-provider.ts";
 import { fail, ok } from "../_shared/types.ts";
+
+const MAX_WORD_CHARS = 200;
+const MAX_TRANSCRIPTION_CHARS = 1000;
 
 const SYSTEM_PROMPT = `You are a medical English pronunciation evaluator for MediLingo.
 Evaluate the user's pronunciation and return ONLY JSON:
@@ -31,6 +34,12 @@ Deno.serve(async (req) => {
   }
   if (!body.word || typeof body.transcription !== "string") {
     return new Response(JSON.stringify(fail("BAD_REQUEST", "`word` and `transcription` are required.")), { status: 400, headers: jsonHeaders });
+  }
+  if (body.word.length > MAX_WORD_CHARS || body.transcription.length > MAX_TRANSCRIPTION_CHARS) {
+    return new Response(JSON.stringify(fail("BAD_REQUEST", "`word` or `transcription` too long.")), { status: 400, headers: jsonHeaders });
+  }
+  if (!(await withinAIQuota(req, "pronunciation", 60, 600, 3600))) {
+    return new Response(JSON.stringify(fail("RATE_LIMITED", "Pronunciation evaluation limit reached. Try again later.")), { status: 429, headers: jsonHeaders });
   }
 
   const userPrompt = `Expected word/phrase: "${body.word}"${body.phonetic ? ` (IPA: ${body.phonetic})` : ""}
