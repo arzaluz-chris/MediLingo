@@ -10,7 +10,7 @@ extension AppDependencies {
     static func live() -> AppDependencies {
         let client = SupabaseClient(
             supabaseURL: AppConfig.supabaseURL,
-            supabaseKey: AppConfig.supabaseAnonKey,
+            supabaseKey: AppConfig.supabaseAnonKey
         )
 
         return AppDependencies(

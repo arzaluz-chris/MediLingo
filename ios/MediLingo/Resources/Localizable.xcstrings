@@ -4,8 +4,21 @@
     "¡Te quedaste sin corazones!" : {
 
     },
+    "¿Tienes un código?" : {
+
+    },
     "%@" : {
 
+    },
+    "%@ de %@ desbloqueados" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ de %2$@ desbloqueados"
+          }
+        }
+      }
     },
     "%@ min · %@ XP" : {
       "localizations" : {
@@ -16,6 +29,9 @@
           }
         }
       }
+    },
+    "%@ XP" : {
+
     },
     "%@/%@" : {
       "localizations" : {
@@ -30,9 +46,24 @@
     "%@%%" : {
 
     },
+    "+%@ 💎" : {
+
+    },
+    "+%@ XP" : {
+
+    },
+    "Aprende inglés médico sin límites." : {
+
+    },
     "Aprender" : {
       "comment" : "Learn tab title",
       "extractionState" : "manual"
+    },
+    "Comparte tu código y ambos ganan 100 gemas." : {
+
+    },
+    "Compartir" : {
+
     },
     "Contraseña" : {
       "comment" : "Password field",
@@ -45,6 +76,9 @@
     "Crear cuenta" : {
       "comment" : "Sign up button",
       "extractionState" : "manual"
+    },
+    "En posesión: %@" : {
+
     },
     "Entrar" : {
       "comment" : "Sign in button",
@@ -65,6 +99,9 @@
       "extractionState" : "manual"
     },
     "MediLingo" : {
+
+    },
+    "MediLingo Premium" : {
 
     },
     "Misiones de hoy" : {
@@ -88,7 +125,10 @@
       "comment" : "Flashcard review tab title",
       "extractionState" : "manual"
     },
-    "Vocabulario" : {
+    "Tu código" : {
+
+    },
+    "Tus gemas" : {
 
     }
   },
