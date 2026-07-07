@@ -12,8 +12,9 @@ enum AppConfig {
     }
 
     static var supabaseAnonKey: String {
-        // Get from Secrets.xcconfig or use the hosted project's anon key (read from dashboard).
-        infoValue("SupabaseAnonKey") ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqaXh5enpjd3FjZmRnaXhkZmxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjA3MDkxOTgsImV4cCI6MTczODI4NTE5OH0.1H1Zs-1DHww5UQlJLaVT2x-h-5pOUEXWWdYKsNwqg2c"
+        // Anon key is public (client-shippable, protected by RLS). Injected via
+        // project.yml Info.plist; fallback to the hosted project's key.
+        infoValue("SupabaseAnonKey") ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqaXh5enRjd3FjZmRnaXhkZmxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNDQ2MTcsImV4cCI6MjA5ODkyMDYxN30.9FfxXdeMyoqWpnePRM5uRoSRrV59JdZjAPqhynm4W2Y"
     }
 
     private static func infoValue(_ key: String) -> String? {
