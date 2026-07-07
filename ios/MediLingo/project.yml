@@ -50,6 +50,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.christian-arzaluz.MediLingo
         PRODUCT_NAME: MediLingo
+        # Persist signing across `xcodegen generate` (Xcode was dropping it each regen).
+        DEVELOPMENT_TEAM: WQCQ3T6U7T
+        CODE_SIGN_STYLE: Automatic
     # Explicit generated Info.plist so we can register the OAuth callback URL
     # scheme (com.christian-arzaluz.MediLingo://) that Google sign-in redirects back through.
     info:
