@@ -25,6 +25,9 @@ struct RootView: View {
             }
         }
         .task {
+            // Restore any persisted Supabase session so a returning user skips
+            // login + onboarding on relaunch.
+            await dependencies.authService.restoreSession()
             isAuthenticated = dependencies.authService.isAuthenticated
             if isAuthenticated { await loadOnboarding() }
         }

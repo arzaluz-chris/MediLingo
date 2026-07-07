@@ -16,6 +16,7 @@ final class StubAuthService: AuthServiceProtocol {
     func signOut() async throws { currentUser = nil }
     func deleteAccount() async throws {}
     func refreshSession() async throws {}
+    func restoreSession() async {}
 }
 
 @Observable

@@ -14,6 +14,8 @@ protocol AuthServiceProtocol: Sendable {
     func signOut() async throws
     func deleteAccount() async throws
     func refreshSession() async throws
+    /// Restore any persisted session on launch (no-op if none).
+    func restoreSession() async
 }
 
 protocol AIServiceProtocol: Sendable {
