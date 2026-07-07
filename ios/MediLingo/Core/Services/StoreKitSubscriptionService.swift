@@ -12,8 +12,8 @@ import StoreKit
 @Observable
 final class StoreKitSubscriptionService: SubscriptionServiceProtocol {
     static let productIDs = [
-        "com.medilingo.app.premium.monthly",
-        "com.medilingo.app.premium.annual",
+        "com.christian-arzaluz.MediLingo.premium.monthly",
+        "com.christian-arzaluz.MediLingo.premium.annual",
     ]
 
     private(set) var isPremium = false

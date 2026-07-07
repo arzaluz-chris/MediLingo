@@ -53,7 +53,7 @@ final class SupabaseAuthService: AuthServiceProtocol {
         // Web OAuth via ASWebAuthenticationSession (managed by supabase-swift).
         let session = try await client.auth.signInWithOAuth(
             provider: .google,
-            redirectTo: URL(string: "com.medilingo.app://callback"),
+            redirectTo: URL(string: "com.christian-arzaluz.MediLingo://callback"),
         )
         return mapUser(session.user)
     }

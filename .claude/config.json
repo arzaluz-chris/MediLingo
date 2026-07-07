@@ -1,0 +1,62 @@
+{
+  "project": "MediLingo",
+  "description": "Cross-platform medical-English learning app for Spanish-speaking healthcare professionals",
+  "phase": "MVP feature-complete",
+  "onboarding": {
+    "readme": "README.md",
+    "setup": "SETUP.md",
+    "backend": "CLAUDE-backend.md",
+    "ios": "CLAUDE-ios.md",
+    "admin": "CLAUDE-admin.md"
+  },
+  "stack": {
+    "backend": "Supabase (PostgreSQL 17, Edge Functions/Deno)",
+    "ios": "SwiftUI (iOS 17+, StoreKit 2, async/await)",
+    "admin": "Next.js 14 App Router (TypeScript, Tailwind, shadcn/ui)",
+    "database": "PostgreSQL 15+ with RLS on all tables"
+  },
+  "critical_paths": {
+    "ios_bundle_id": "com.christian-arzaluz.MediLingo",
+    "supabase_project_ref": "qjixyztcwqcfdgixdfla",
+    "supabase_project_url": "https://qjixyztcwqcfdgixdfla.supabase.co",
+    "github_repo": "https://github.com/arzaluz-chris/MediLingo"
+  },
+  "before_starting": [
+    "Read README.md for quick start",
+    "Check SETUP.md for what you must provide (API keys, Apple Developer, etc.)",
+    "Run `supabase link --project-ref qjixyztcwqcfdgixdfla` to link the hosted project",
+    "iOS: `cd ios/MediLingo && xcodegen generate && open MediLingo.xcodeproj`",
+    "Admin: `cd admin && pnpm install && pnpm dev` (http://localhost:3000)"
+  ],
+  "commands": {
+    "backend_start": "cd supabase && supabase start && supabase functions serve",
+    "backend_reset": "cd supabase && supabase db reset",
+    "admin_dev": "cd admin && pnpm dev",
+    "admin_build": "cd admin && pnpm build",
+    "ios_generate": "cd ios/MediLingo && xcodegen generate",
+    "ios_build": "cd ios/MediLingo && xcodebuild -scheme MediLingo -destination 'generic/platform=iOS Simulator' build",
+    "ci_check": "All tests run via GitHub Actions (`.github/workflows/ci.yml`): admin lint+build, Supabase migrations, iOS xcodegen+build, JSON schema validation"
+  },
+  "status": {
+    "backend": "✓ 13 migrations, 8 functions (6 deployed), RLS on all tables, pg_cron enabled",
+    "ios": "✓ BUILD SUCCEEDED, all features wired (auth, gamification, StoreKit, offline, referrals, achievements)",
+    "admin": "✓ Compiled successfully, full CMS (courses, lessons, exercises, quests, achievements, users, analytics, settings)",
+    "content": "✓ 10 modules / 50 lessons / 210 exercises / 95 vocabulary (AI-drafted, pending physician validation)"
+  },
+  "next_steps": [
+    "Fill remaining IAP metadata in App Store Connect (descriptions, screenshots, rating, category, etc.)",
+    "Test on Simulator: `xcodebuild ... build` → run in Simulator → open app → test StoreKit purchase flow",
+    "Device testing: set up Xcode provisioning (team ID, certificate, profile) → run on iPhone",
+    "Physician content validation (editorial review of AI-drafted lessons)",
+    "Design assets (illustrations, Lottie, audio)",
+    "Analytics wiring (PostHog, Firebase — currently stubs)"
+  ],
+  "known_gaps": [
+    "Analytics/Crashlytics not wired (stubs exist, keys needed)",
+    "RevenueCat client `Purchases.logIn()` not wired (webhook ready)",
+    "Remote push send path (tables + local reminders ready; needs APNs)",
+    "iOS certificate UI (RPC exists, no screen)",
+    "Full course-tree navigation (first course/module only)",
+    "Android beyond auth (Phase 5)"
+  ]
+}

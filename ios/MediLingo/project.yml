@@ -48,10 +48,10 @@ targets:
       - path: Resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.medilingo.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.christian-arzaluz.MediLingo
         PRODUCT_NAME: MediLingo
     # Explicit generated Info.plist so we can register the OAuth callback URL
-    # scheme (com.medilingo.app://) that Google sign-in redirects back through.
+    # scheme (com.christian-arzaluz.MediLingo://) that Google sign-in redirects back through.
     info:
       path: Info.plist
       properties:
@@ -65,9 +65,9 @@ targets:
         SupabaseURL: "$(SUPABASE_URL)"
         SupabaseAnonKey: "$(SUPABASE_ANON_KEY)"
         CFBundleURLTypes:
-          - CFBundleURLName: com.medilingo.app
+          - CFBundleURLName: com.christian-arzaluz.MediLingo
             CFBundleURLSchemes:
-              - com.medilingo.app
+              - com.christian-arzaluz.MediLingo
     entitlements:
       path: MediLingo.entitlements
       properties:
