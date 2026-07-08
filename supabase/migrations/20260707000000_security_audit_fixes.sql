@@ -85,18 +85,30 @@ REVOKE ALL ON FUNCTION public.rollover_leagues() FROM PUBLIC, anon, authenticate
 GRANT EXECUTE ON FUNCTION public.rollover_leagues() TO service_role;
 
 -- ----------------------------------------------------------------------------
--- (2) Stop leaking PII. RLS is row-level only, so column exposure is controlled
--- via table grants. The public leaderboard needs display_name/avatar of other
--- users; nothing in the app reads other users' email. Revoke the blanket SELECT
--- and re-grant every column EXCEPT email (anon gets only identity columns).
+-- (2) Stop leaking PII. RLS is row-level only (the "Profiles are readable"
+-- policy is USING (TRUE) so the leaderboard can embed profiles(display_name) of
+-- other users), so column exposure is the only lever — table grants apply to
+-- ALL rows regardless of RLS. Revoke the blanket SELECT and re-grant only the
+-- columns a client legitimately reads across rows.
+--   - email:        never read by any client (auth session carries own email).
+--   - referral_code: read own-only via the get_referral_code() RPC, never as a
+--                    column; leaking every user's code aids referral fraud.
+--   - referred_by:  social graph; no client reads it (admin uses service_role).
+--   - premium_until: billing detail; no client reads it (iOS reads is_premium).
+-- is_premium (bool) stays: iOS reads it on its own row and the flag is low
+-- sensitivity. Fully hiding it per-row would need a leaderboard view + an
+-- own-row policy, which changes the client query contract — out of scope here.
+--
+-- CAUTION: because this is a column grant, any *new* PostgREST query that does
+-- .select() / .select("*") on profiles as authenticated will 403 on a revoked
+-- column. Current clients select explicit columns, so they are unaffected.
 -- Rollback: GRANT SELECT ON public.profiles TO anon, authenticated;
 -- ----------------------------------------------------------------------------
 REVOKE SELECT ON public.profiles FROM anon, authenticated;
 
 GRANT SELECT (
   id, display_name, avatar_url, role, english_level, primary_goal, specialty,
-  daily_goal_xp, locale, timezone, is_premium, premium_until, referral_code,
-  referred_by, created_at, updated_at
+  daily_goal_xp, locale, timezone, is_premium, created_at, updated_at
 ) ON public.profiles TO authenticated;
 
 GRANT SELECT (id, display_name, avatar_url) ON public.profiles TO anon;
@@ -227,6 +239,29 @@ $$;
 -- unique index turns a concurrent second redemption into a constraint error.
 -- Rollback: DROP INDEX uniq_referrals_referee; restore body from 20260706000000.
 -- ----------------------------------------------------------------------------
+-- Dedupe FIRST: the old redeem_referral could leave a referee attached to more
+-- than one row (concurrent double-redeem). CREATE UNIQUE INDEX would abort the
+-- whole migration on any such rows, so collapse them: keep the most-advanced
+-- row per referee (rewarded > redeemed, earliest first) and release the extras
+-- back to an unclaimed 'pending' code. Already-paid gems are not clawed back —
+-- this only makes the data satisfy the constraint. No-op on a clean DB.
+WITH ranked AS (
+  SELECT id,
+         row_number() OVER (
+           PARTITION BY referee_id
+           ORDER BY rewarded_at DESC NULLS LAST, redeemed_at ASC NULLS LAST, created_at ASC
+         ) AS rn
+  FROM public.referrals
+  WHERE referee_id IS NOT NULL
+)
+UPDATE public.referrals r SET
+  referee_id  = NULL,
+  status      = 'pending',
+  redeemed_at = NULL,
+  rewarded_at = NULL
+FROM ranked
+WHERE r.id = ranked.id AND ranked.rn > 1;
+
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_referrals_referee
   ON public.referrals (referee_id) WHERE referee_id IS NOT NULL;
 
