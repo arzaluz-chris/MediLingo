@@ -25,14 +25,12 @@ struct FillInBlankView: View {
             prompt: exercise.prompt,
             content: {
                 VStack(alignment: .leading, spacing: MLSpacing.md) {
-                    TextField("Respuesta", text: $answer)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .padding(MLSpacing.md)
-                        .background(Color.mlSurface)
-                        .clipShape(RoundedRectangle(cornerRadius: MLRadius.md))
-                        .foregroundStyle(Color.mlTextPrimary)
-                        .disabled(phase == .checked)
+                    ExerciseTextField(
+                        placeholder: "Respuesta",
+                        text: $answer,
+                        lineLimit: 1...2,
+                        disabled: phase == .checked,
+                    )
 
                     if let bank = meta.wordBank, !bank.isEmpty {
                         FlowChips(items: bank) { word in
@@ -46,7 +44,7 @@ struct FillInBlankView: View {
                 canCheck: !answer.trimmingCharacters(in: .whitespaces).isEmpty,
                 isCorrect: isCorrect,
                 explanation: correctAnswerHint,
-                onCheck: { phase = .checked },
+                onCheck: { withAnimation(MLMotion.smooth) { phase = .checked } },
                 onContinue: {
                     onComplete(ExerciseResult(isCorrect: isCorrect, xpEarned: isCorrect ? exercise.xpReward : 0, explanation: exercise.explanation))
                 },
@@ -57,27 +55,5 @@ struct FillInBlankView: View {
     private var correctAnswerHint: String? {
         if isCorrect { return exercise.explanationES ?? exercise.explanation }
         return "Respuesta: \(exercise.correctAnswer ?? acceptable.first ?? "")"
-    }
-}
-
-/// Simple wrapping chip row for word banks / tokens.
-struct FlowChips: View {
-    let items: [String]
-    let onTap: (String) -> Void
-
-    var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: MLSpacing.sm)], spacing: MLSpacing.sm) {
-            ForEach(items, id: \.self) { item in
-                Button { onTap(item) } label: {
-                    Text(item)
-                        .font(MLFont.body())
-                        .foregroundStyle(Color.mlTextPrimary)
-                        .padding(.horizontal, MLSpacing.md)
-                        .padding(.vertical, MLSpacing.sm)
-                        .background(Color.mlSurfaceElevated)
-                        .clipShape(Capsule())
-                }
-            }
-        }
     }
 }

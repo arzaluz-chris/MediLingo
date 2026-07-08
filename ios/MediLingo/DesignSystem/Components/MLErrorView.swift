@@ -7,19 +7,32 @@ struct MLErrorView: View {
 
     var body: some View {
         VStack(spacing: MLSpacing.md) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(Color.mlWarning)
+            ZStack {
+                Circle()
+                    .fill(Color.mlWarning.opacity(0.12))
+                    .frame(width: 96, height: 96)
+                Image(systemName: "wifi.exclamationmark")
+                    .font(.system(size: 38, weight: .medium))
+                    .foregroundStyle(Color.mlWarning)
+                    .symbolRenderingMode(.hierarchical)
+            }
+            .accessibilityHidden(true)
+
+            Text("Algo salió mal")
+                .font(MLFont.title3)
+                .foregroundStyle(Color.mlTextPrimary)
             Text(message)
-                .font(MLFont.body())
+                .font(MLFont.subheadline)
                 .foregroundStyle(Color.mlTextSecondary)
                 .multilineTextAlignment(.center)
+
             if let retry {
-                MLButton(title: "Reintentar", style: .outline) { retry() }
+                MLButton(title: "Reintentar", icon: "arrow.clockwise", style: .soft) { retry() }
                     .fixedSize()
+                    .padding(.top, MLSpacing.xs)
             }
         }
-        .padding(MLSpacing.lg)
+        .padding(MLSpacing.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

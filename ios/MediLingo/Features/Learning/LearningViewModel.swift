@@ -1,16 +1,19 @@
 import SwiftUI
 
 // Loads the course tree and drives lesson launch (CLAUDE-ios.md § Learning).
-// Phase 1 flattens to the first course's first module; the full Duolingo-style
+// Phase 1 flattens to the first course's first module; the full multi-course
 // tree arrives with CourseDetailView later.
 @MainActor
 @Observable
 final class LearningViewModel {
     var courseTitle: String = ""
     var lessons: [Lesson] = []
+    /// Lesson IDs the user has already completed (drives the path states).
+    var completedLessons: Set<UUID> = []
     var isLoading = false
     var errorMessage: String?
 
+    private var moduleID: UUID?
     private let content: ContentRepositoryProtocol
     private let gamification: GamificationRepositoryProtocol
     private let progress: ProgressRepositoryProtocol
@@ -23,6 +26,15 @@ final class LearningViewModel {
         self.progress = progress
     }
 
+    /// First lesson that hasn't been completed yet — the path's "current" node.
+    var currentLessonID: UUID? {
+        lessons.first { !completedLessons.contains($0.id) }?.id
+    }
+
+    var completedCount: Int {
+        lessons.filter { completedLessons.contains($0.id) }.count
+    }
+
     func load() async {
         isLoading = true
         errorMessage = nil
@@ -33,10 +45,18 @@ final class LearningViewModel {
             courseTitle = course.title
             let modules = try await content.fetchModules(courseID: course.id)
             guard let module = modules.first else { lessons = []; return }
+            moduleID = module.id
             lessons = try await content.fetchLessons(moduleID: module.id)
+            await refreshCompleted()
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
+    }
+
+    /// Refresh which lessons are complete (cheap; called after every lesson).
+    func refreshCompleted() async {
+        guard let moduleID else { return }
+        completedLessons = (try? await progress.getCompletedLessons(moduleID: moduleID)) ?? completedLessons
     }
 
     /// Fetch the exercises + current heart count needed to launch a lesson.
@@ -70,6 +90,7 @@ final class LearningViewModel {
                 timeMinutes: summary.timeMinutes,
                 exerciseCount: summary.exerciseCount,
             )
+            await refreshCompleted()
             newlyUnlocked = try await gamification.checkAndUnlockAchievements()
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription

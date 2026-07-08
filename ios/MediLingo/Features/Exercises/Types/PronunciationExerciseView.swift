@@ -24,12 +24,32 @@ struct PronunciationExerciseView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: MLSpacing.lg) {
-                    Text(exercise.prompt).font(MLFont.caption()).foregroundStyle(Color.mlTextSecondary)
-                    Text(word).font(MLFont.title(34)).foregroundStyle(Color.mlTextPrimary)
-                    if let phonetic = meta.phonetic {
-                        Text(phonetic).font(MLFont.mono(16)).foregroundStyle(Color.mlTextSecondary)
+                    Text(exercise.prompt)
+                        .font(MLFont.subheadline)
+                        .foregroundStyle(Color.mlTextSecondary)
+
+                    VStack(spacing: MLSpacing.sm) {
+                        Text(word)
+                            .font(MLFont.hero)
+                            .foregroundStyle(Color.mlTextPrimary)
+                            .multilineTextAlignment(.center)
+                        if let phonetic = meta.phonetic {
+                            Text(phonetic)
+                                .font(MLFont.mono)
+                                .foregroundStyle(Color.mlTextSecondary)
+                        }
                     }
+                    .padding(MLSpacing.lg)
+                    .frame(maxWidth: .infinity)
+                    .mlCardStyle(cornerRadius: MLRadius.xl)
+
                     micButton
+                        .padding(.top, MLSpacing.md)
+
+                    Text(stateHint)
+                        .font(MLFont.footnote)
+                        .foregroundStyle(Color.mlTextTertiary)
+
                     if phase == .result { resultCard }
                 }
                 .padding(MLSpacing.lg)
@@ -38,14 +58,34 @@ struct PronunciationExerciseView: View {
         }
     }
 
+    private var stateHint: String {
+        switch phase {
+        case .idle: "Toca el micrófono y pronuncia el término"
+        case .recording: "Escuchando… toca para terminar"
+        case .evaluating: "Evaluando tu pronunciación…"
+        case .result: isCorrect ? "¡Bien dicho!" : "Inténtalo de nuevo en el siguiente repaso"
+        }
+    }
+
     private var micButton: some View {
         Button {
             Task { await toggleRecording() }
         } label: {
-            Image(systemName: phase == .recording ? "stop.circle.fill" : "mic.circle.fill")
-                .font(.system(size: 72))
-                .foregroundStyle(phase == .recording ? Color.mlError : Color.mlPrimary)
+            ZStack {
+                if phase == .recording {
+                    PulsingRing(tint: .mlError)
+                }
+                Circle()
+                    .fill(phase == .recording ? AnyShapeStyle(Color.mlError) : AnyShapeStyle(MLGradient.brand))
+                    .frame(width: 96, height: 96)
+                    .mlShadow(.card)
+                Image(systemName: phase == .recording ? "stop.fill" : "mic.fill")
+                    .font(.system(size: 36))
+                    .foregroundStyle(Color.mlOnAccent)
+                    .contentTransition(.symbolEffect(.replace))
+            }
         }
+        .buttonStyle(MLPressableButtonStyle(scale: 0.92))
         .disabled(phase == .evaluating)
         .accessibilityLabel(phase == .recording ? "Detener grabación" : "Grabar pronunciación")
     }
@@ -53,23 +93,37 @@ struct PronunciationExerciseView: View {
     private var resultCard: some View {
         MLCard {
             VStack(spacing: MLSpacing.sm) {
-                Text("\(Int(score))%")
-                    .font(MLFont.title(28))
-                    .foregroundStyle(isCorrect ? Color.mlSuccess : Color.mlWarning)
+                MLProgressRing(
+                    progress: score / 100,
+                    lineWidth: 8,
+                    tint: isCorrect ? .mlEmerald : .mlWarning,
+                    label: "\(Int(score))%",
+                )
+                .frame(width: 88, height: 88)
+
                 if !transcription.isEmpty {
-                    Text("Escuché: \"\(transcription)\"").font(MLFont.caption()).foregroundStyle(Color.mlTextSecondary)
+                    Text("Escuché: “\(transcription)”")
+                        .font(MLFont.subheadline)
+                        .foregroundStyle(Color.mlTextSecondary)
+                        .multilineTextAlignment(.center)
                 }
                 if !feedback.isEmpty {
-                    Text(feedback).font(MLFont.body()).foregroundStyle(Color.mlTextSecondary).multilineTextAlignment(.center)
+                    Text(feedback)
+                        .font(MLFont.body)
+                        .foregroundStyle(Color.mlTextPrimary)
+                        .multilineTextAlignment(.center)
                 }
             }
             .frame(maxWidth: .infinity)
         }
+        .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 
     private var footer: some View {
         VStack {
-            if phase == .evaluating { MLLoadingView(message: "Evaluando…").frame(height: 60) }
+            if phase == .evaluating {
+                MLLoadingView(message: "Evaluando…").frame(height: 60)
+            }
             MLButton(
                 title: phase == .result ? "Continuar" : "Saltar",
                 style: phase == .result ? .primary : .outline,
@@ -82,20 +136,22 @@ struct PronunciationExerciseView: View {
             }
         }
         .padding(MLSpacing.md)
+        .background(.bar)
     }
 
     private func toggleRecording() async {
         let speech = dependencies.speechService
         if phase == .recording {
-            phase = .evaluating
+            withAnimation(MLMotion.smooth) { phase = .evaluating }
             let result = try? await speech.stopRecording()
             transcription = result?.transcription ?? ""
             await evaluate(confidence: result?.confidence ?? 0)
         } else {
             guard await speech.requestAuthorization() else { return }
             do {
+                MLHaptic.medium()
                 try await speech.startRecording()
-                phase = .recording
+                withAnimation(MLMotion.smooth) { phase = .recording }
             } catch {
                 phase = .idle
             }
@@ -117,6 +173,28 @@ struct PronunciationExerciseView: View {
         }
         isCorrect = score >= Double(meta.minimumScore)
         if isCorrect { MLHaptic.correct() } else { MLHaptic.incorrect() }
-        phase = .result
+        withAnimation(MLMotion.bouncy) { phase = .result }
+    }
+}
+
+// Expanding ring around the mic while recording. Static under Reduce Motion.
+private struct PulsingRing: View {
+    let tint: Color
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pulsing = false
+
+    var body: some View {
+        Circle()
+            .stroke(tint.opacity(0.35), lineWidth: 6)
+            .frame(width: 120, height: 120)
+            .scaleEffect(reduceMotion ? 1 : (pulsing ? 1.15 : 0.95))
+            .opacity(reduceMotion ? 1 : (pulsing ? 0.4 : 1))
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                    pulsing = true
+                }
+            }
+            .accessibilityHidden(true)
     }
 }

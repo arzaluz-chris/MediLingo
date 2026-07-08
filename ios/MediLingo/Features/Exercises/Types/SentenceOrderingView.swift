@@ -1,6 +1,7 @@
 import SwiftUI
 
 // Tap word tiles to build the sentence; compared to correct_answer.
+// Chosen words render as removable chips inside the answer area.
 struct SentenceOrderingView: View {
     let exercise: Exercise
     let onComplete: (ExerciseResult) -> Void
@@ -22,21 +23,10 @@ struct SentenceOrderingView: View {
             prompt: exercise.prompt,
             content: {
                 VStack(alignment: .leading, spacing: MLSpacing.md) {
-                    // Built sentence.
-                    Text(built.isEmpty ? "…" : built)
-                        .font(MLFont.body(18))
-                        .foregroundStyle(Color.mlTextPrimary)
-                        .frame(maxWidth: .infinity, minHeight: 60, alignment: .topLeading)
-                        .padding(MLSpacing.md)
-                        .background(Color.mlSurface)
-                        .clipShape(RoundedRectangle(cornerRadius: MLRadius.md))
-                        .onTapGesture { if phase == .answering { _ = chosen.popLast() } }
-
-                    // Remaining word pool.
+                    answerArea
                     FlowChips(items: remaining) { word in
-                        if phase == .answering, let idx = remaining.firstIndex(of: word) {
-                            chosen.append(remaining[idx])
-                        }
+                        guard phase == .answering else { return }
+                        withAnimation(MLMotion.snappy) { chosen.append(word) }
                     }
                 }
             },
@@ -45,11 +35,52 @@ struct SentenceOrderingView: View {
                 canCheck: !chosen.isEmpty,
                 isCorrect: isCorrect,
                 explanation: isCorrect ? (exercise.explanationES ?? exercise.explanation) : "Correcto: \(exercise.correctAnswer ?? "")",
-                onCheck: { phase = .checked },
+                onCheck: { withAnimation(MLMotion.smooth) { phase = .checked } },
                 onContinue: {
                     onComplete(ExerciseResult(isCorrect: isCorrect, xpEarned: isCorrect ? exercise.xpReward : 0, explanation: exercise.explanation))
                 },
             ),
+        )
+    }
+
+    /// The sentence under construction. Tap a chip to send it back to the pool.
+    private var answerArea: some View {
+        Group {
+            if chosen.isEmpty {
+                Text("Toca las palabras para formar la oración")
+                    .font(MLFont.subheadline)
+                    .foregroundStyle(Color.mlTextTertiary)
+                    .frame(maxWidth: .infinity, minHeight: 72, alignment: .center)
+            } else {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 80), spacing: MLSpacing.sm)],
+                          spacing: MLSpacing.sm) {
+                    ForEach(Array(chosen.enumerated()), id: \.offset) { index, word in
+                        Button {
+                            guard phase == .answering else { return }
+                            MLHaptic.selection()
+                            withAnimation(MLMotion.snappy) {
+                                _ = chosen.remove(at: index)
+                            }
+                        } label: {
+                            Text(word)
+                                .font(MLFont.bodyMedium)
+                                .foregroundStyle(Color.mlOnAccent)
+                                .padding(.horizontal, MLSpacing.md)
+                                .padding(.vertical, MLSpacing.sm + MLSpacing.xs)
+                                .background(Color.mlPrimary, in: Capsule())
+                        }
+                        .buttonStyle(MLPressableButtonStyle(scale: 0.93))
+                        .accessibilityLabel("\(word). Toca para quitar")
+                    }
+                }
+                .frame(maxWidth: .infinity, minHeight: 72, alignment: .topLeading)
+            }
+        }
+        .padding(MLSpacing.md)
+        .background(Color.mlSurface, in: RoundedRectangle(cornerRadius: MLRadius.md, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: MLRadius.md, style: .continuous)
+                .strokeBorder(Color.mlCardStroke, lineWidth: 1)
         )
     }
 

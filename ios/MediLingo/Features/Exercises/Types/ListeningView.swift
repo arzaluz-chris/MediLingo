@@ -9,6 +9,7 @@ struct ListeningView: View {
     @State private var selectedID: UUID?
     @State private var phase: AnswerPhase = .answering
     @State private var replays = 0
+    @State private var playCount = 0
 
     private var meta: ListeningMeta {
         ExerciseMetadata.decode(ListeningMeta.self, from: exercise.metadataJSON, fallback: .default)
@@ -27,26 +28,21 @@ struct ListeningView: View {
         ExerciseScaffold(
             prompt: exercise.prompt,
             content: {
-                VStack(spacing: MLSpacing.md) {
-                    Button {
-                        play()
-                    } label: {
-                        Label("Escuchar", systemImage: "play.circle.fill")
-                            .font(MLFont.heading())
-                            .foregroundStyle(canReplay ? Color.mlPrimary : Color.mlTextTertiary)
-                    }
-                    .disabled(!canReplay)
-                    .accessibilityLabel("Reproducir audio")
+                VStack(spacing: MLSpacing.lg) {
+                    audioButton
+                        .frame(maxWidth: .infinity)
 
-                    ForEach(options) { option in
-                        AnswerButton(
-                            text: option.text,
-                            isSelected: selectedID == option.id,
-                            correctness: correctness(for: option),
-                        ) {
-                            if phase == .answering { selectedID = option.id }
+                    VStack(spacing: MLSpacing.sm + MLSpacing.xs) {
+                        ForEach(options) { option in
+                            AnswerButton(
+                                text: option.text,
+                                isSelected: selectedID == option.id,
+                                correctness: correctness(for: option),
+                            ) {
+                                if phase == .answering { selectedID = option.id }
+                            }
+                            .disabled(phase == .checked)
                         }
-                        .disabled(phase == .checked)
                     }
                 }
             },
@@ -55,7 +51,7 @@ struct ListeningView: View {
                 canCheck: selectedID != nil,
                 isCorrect: isCorrect,
                 explanation: exercise.explanationES ?? exercise.explanation,
-                onCheck: { phase = .checked },
+                onCheck: { withAnimation(MLMotion.smooth) { phase = .checked } },
                 onContinue: {
                     onComplete(ExerciseResult(isCorrect: isCorrect, xpEarned: isCorrect ? exercise.xpReward : 0, explanation: exercise.explanation))
                 },
@@ -63,9 +59,32 @@ struct ListeningView: View {
         )
     }
 
+    /// Big round speaker button — the focal point of a listening exercise.
+    private var audioButton: some View {
+        Button {
+            play()
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(canReplay ? AnyShapeStyle(MLGradient.brand) : AnyShapeStyle(Color.mlSurfaceElevated))
+                    .frame(width: 96, height: 96)
+                    .mlShadow(.card)
+                Image(systemName: "speaker.wave.2.fill")
+                    .font(.system(size: 36))
+                    .foregroundStyle(canReplay ? Color.mlOnAccent : Color.mlTextTertiary)
+                    .symbolEffect(.bounce, value: playCount)
+            }
+        }
+        .buttonStyle(MLPressableButtonStyle(scale: 0.92))
+        .disabled(!canReplay)
+        .accessibilityLabel(canReplay ? "Reproducir audio" : "Sin reproducciones restantes")
+    }
+
     private func play() {
         guard let urlString = exercise.promptAudioURL, let url = URL(string: urlString) else { return }
+        MLHaptic.tap()
         replays += 1
+        playCount += 1
         Task { try? await dependencies.audioService.play(url: url) }
     }
 

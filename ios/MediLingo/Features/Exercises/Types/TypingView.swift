@@ -24,24 +24,22 @@ struct TypingView: View {
         ExerciseScaffold(
             prompt: exercise.prompt,
             content: {
-                TextField(meta.placeholder, text: $answer, axis: .vertical)
-                    .lineLimit(1...4)
-                    .autocorrectionDisabled()
-                    .padding(MLSpacing.md)
-                    .background(Color.mlSurface)
-                    .clipShape(RoundedRectangle(cornerRadius: MLRadius.md))
-                    .foregroundStyle(Color.mlTextPrimary)
-                    .disabled(phase == .checked)
-                    .onChange(of: answer) { _, new in
-                        if new.count > meta.maxLength { answer = String(new.prefix(meta.maxLength)) }
-                    }
+                ExerciseTextField(
+                    placeholder: meta.placeholder,
+                    text: $answer,
+                    lineLimit: 1...4,
+                    disabled: phase == .checked,
+                )
+                .onChange(of: answer) { _, new in
+                    if new.count > meta.maxLength { answer = String(new.prefix(meta.maxLength)) }
+                }
             },
             footer: ExerciseFooter(
                 phase: phase,
                 canCheck: !answer.trimmingCharacters(in: .whitespaces).isEmpty,
                 isCorrect: isCorrect,
                 explanation: isCorrect ? (exercise.explanationES ?? exercise.explanation) : "Respuesta: \(exercise.correctAnswer ?? acceptable.first ?? "")",
-                onCheck: { phase = .checked },
+                onCheck: { withAnimation(MLMotion.smooth) { phase = .checked } },
                 onContinue: {
                     onComplete(ExerciseResult(isCorrect: isCorrect, xpEarned: isCorrect ? exercise.xpReward : 0, explanation: exercise.explanation))
                 },
