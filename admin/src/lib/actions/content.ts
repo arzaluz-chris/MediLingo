@@ -148,6 +148,83 @@ export async function createExercise(basePath: string, formData: FormData): Prom
   return { ok: true };
 }
 
+// ── Inline text edits (course / module / lesson) ─────────────────────────────
+// Presentation fields only — publish state and structure keep their own actions.
+const courseEditSchema = z.object({
+  title: z.string().min(1),
+  short_desc: z.string().default(""),
+  difficulty: z.enum(["beginner", "intermediate", "advanced", "mixed"]),
+  sort_order: z.coerce.number().int().default(0),
+});
+
+export async function updateCourse(
+  id: string, revalidate: string, formData: FormData,
+): Promise<ActionResult> {
+  const denied = await assertAdmin();
+  if (denied) return fail(denied);
+
+  const parsed = courseEditSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("courses").update(parsed.data).eq("id", id);
+  if (error) return fail(error.message);
+
+  revalidatePath(revalidate);
+  return { ok: true };
+}
+
+const moduleEditSchema = z.object({
+  title: z.string().min(1),
+  slug: z.string().min(1).regex(/^[a-z0-9-]+$/, "lowercase, digits and dashes only"),
+  sort_order: z.coerce.number().int().default(0),
+});
+
+export async function updateModule(
+  id: string, revalidate: string, formData: FormData,
+): Promise<ActionResult> {
+  const denied = await assertAdmin();
+  if (denied) return fail(denied);
+
+  const parsed = moduleEditSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("modules").update(parsed.data).eq("id", id);
+  if (error) return fail(error.message);
+
+  revalidatePath(revalidate);
+  return { ok: true };
+}
+
+const lessonEditSchema = z.object({
+  title: z.string().min(1),
+  slug: z.string().min(1).regex(/^[a-z0-9-]+$/, "lowercase, digits and dashes only"),
+  lesson_type: z.enum([
+    "standard", "review", "clinical_case", "listening",
+    "pronunciation", "writing", "conversation", "test",
+  ]),
+  xp_reward: z.coerce.number().int().default(50),
+  sort_order: z.coerce.number().int().default(0),
+});
+
+export async function updateLesson(
+  id: string, revalidate: string, formData: FormData,
+): Promise<ActionResult> {
+  const denied = await assertAdmin();
+  if (denied) return fail(denied);
+
+  const parsed = lessonEditSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input");
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("lessons").update(parsed.data).eq("id", id);
+  if (error) return fail(error.message);
+
+  revalidatePath(revalidate);
+  return { ok: true };
+}
+
 // Edit the metadata JSONB of an existing exercise (validated per-type).
 export async function updateExerciseMetadata(
   id: string, exerciseType: string, metadataJson: string, revalidate: string,
