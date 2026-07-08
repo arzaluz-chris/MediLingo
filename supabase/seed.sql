@@ -47,15 +47,15 @@ VALUES
   ('44444444-0000-0000-0000-000000000002', '33333333-3333-3333-3333-333333333331', 'translation',
    'Translate to English: "¿Cómo se siente hoy?"', 'How are you feeling today?',
    'Present continuous is natural here.', 'El presente continuo es natural aquí.', 10, 1,
-   '{"source_lang":"es","target_lang":"en"}'::jsonb, TRUE),
+   '{"source_language":"es","target_language":"en","source_text":"¿Cómo se siente hoy?","acceptable_translations":["How are you feeling today?","How do you feel today?"]}'::jsonb, TRUE),
   ('44444444-0000-0000-0000-000000000003', '33333333-3333-3333-3333-333333333331', 'fill_in_blank',
    'Complete: "Please have a ____ and make yourself comfortable."', 'seat',
    '"Have a seat" invites the patient to sit.', '"Have a seat" invita al paciente a sentarse.', 10, 2,
-   '{"blanks":["seat"]}'::jsonb, TRUE),
+   '{"acceptable_answers":["seat"]}'::jsonb, TRUE),
   ('44444444-0000-0000-0000-000000000004', '33333333-3333-3333-3333-333333333331', 'flashcard',
    'consultation', 'consulta',
    'A meeting between a patient and a clinician.', 'Reunión entre paciente y clínico.', 10, 3,
-   '{"front":"consultation","back":"consulta","phonetic":"/ˌkɒn.səlˈteɪ.ʃən/"}'::jsonb, TRUE)
+   '{"front":{"text":"consultation","subtext":"/ˌkɒn.səlˈteɪ.ʃən/"},"back":{"text":"consulta","translation":"consulta","example":"The consultation lasted twenty minutes."}}'::jsonb, TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- Multiple-choice options for exercise 1 -------------------------------------
