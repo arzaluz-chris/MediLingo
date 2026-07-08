@@ -13,6 +13,10 @@ extension AppDependencies {
             supabaseKey: AppConfig.supabaseAnonKey
         )
 
+        // Give the push token bridge the client so it can persist APNs tokens
+        // once the AppDelegate delivers one.
+        Task { await PushRegistrar.shared.configure(client: client) }
+
         return AppDependencies(
             authService: SupabaseAuthService(client: client),
             profileRepository: SupabaseProfileRepository(client: client),
@@ -24,7 +28,7 @@ extension AppDependencies {
             audioService: AudioService(),
             speechService: SpeechService(),
             subscriptionService: StoreKitSubscriptionService(),
-            analyticsService: StubAnalyticsService(),
+            analyticsService: PostHogAnalyticsService(),
             syncService: StubSyncService(),
         )
     }

@@ -63,6 +63,7 @@ final class SupabaseAuthService: AuthServiceProtocol {
     func signOut() async throws {
         try await client.auth.signOut()
         currentUser = nil
+        RevenueCatService.logOut()
     }
 
     func deleteAccount() async throws {
@@ -90,6 +91,9 @@ final class SupabaseAuthService: AuthServiceProtocol {
             displayName: (authUser.userMetadata["full_name"]?.stringValue) ?? "",
         )
         currentUser = user
+        // Tie RevenueCat's app_user_id to the Supabase user id so the
+        // revenuecat-webhook can keep profiles.is_premium in sync.
+        RevenueCatService.logIn(userID: user.id.uuidString)
         return user
     }
 }

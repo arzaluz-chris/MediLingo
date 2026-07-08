@@ -45,6 +45,22 @@ jobs:
             node -e "JSON.parse(require('fs').readFileSync('$f','utf8')); console.log('ok: $f')"
           done
 
+  functions:
+    name: Edge Functions (type-check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check every Edge Function
+        working-directory: supabase/functions
+        run: |
+          for f in */index.ts; do
+            echo "deno check $f"
+            deno check "$f"
+          done
+
   supabase:
     name: Supabase (migrations + seed reset)
     runs-on: ubuntu-latest

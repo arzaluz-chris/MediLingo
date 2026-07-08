@@ -37,6 +37,17 @@ const INACTIVE_EVENTS = new Set(["EXPIRATION"]);
 const CANCEL_EVENTS = new Set(["CANCELLATION"]);
 const BILLING_EVENTS = new Set(["BILLING_ISSUE"]);
 
+// Constant-time string comparison to avoid leaking the secret via timing.
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const ba = enc.encode(a);
+  const bb = enc.encode(b);
+  if (ba.length !== bb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ba.length; i++) diff |= ba[i] ^ bb[i];
+  return diff === 0;
+}
+
 function platformFrom(store?: string): string {
   switch (store) {
     case "APP_STORE": return "ios";
@@ -59,7 +70,7 @@ Deno.serve(async (req) => {
   // Shared-secret check (constant string configured in the RevenueCat dashboard).
   const secret = Deno.env.get("REVENUECAT_WEBHOOK_SECRET") ?? "";
   const authHeader = req.headers.get("Authorization") ?? "";
-  if (!secret || authHeader !== `Bearer ${secret}`) {
+  if (!secret || !timingSafeEqual(authHeader, `Bearer ${secret}`)) {
     return new Response(JSON.stringify(fail("UNAUTHORIZED", "Invalid webhook secret.")), {
       status: 401, headers: jsonHeaders,
     });
@@ -89,6 +100,21 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
   );
+
+  // Idempotency: RevenueCat retries deliver the same event.id. If we already
+  // recorded it (stored in subscriptions.revenue_cat_id), acknowledge and skip.
+  if (event.id) {
+    const { data: seen } = await supabase
+      .from("subscriptions")
+      .select("id")
+      .eq("revenue_cat_id", event.id)
+      .maybeSingle();
+    if (seen) {
+      return new Response(JSON.stringify(ok({ skipped: "duplicate", eventId: event.id })), {
+        status: 200, headers: jsonHeaders,
+      });
+    }
+  }
 
   const expiresAt = event.expiration_at_ms ? new Date(event.expiration_at_ms).toISOString() : null;
   const startsAt = event.purchased_at_ms ? new Date(event.purchased_at_ms).toISOString() : new Date().toISOString();

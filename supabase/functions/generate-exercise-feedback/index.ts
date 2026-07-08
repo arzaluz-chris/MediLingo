@@ -6,9 +6,11 @@
 // medical professional after they answer an exercise.
 
 import { handleCorsPreflight, jsonHeaders } from "../_shared/cors.ts";
-import { getUser } from "../_shared/auth.ts";
+import { getUser, withinAIQuota } from "../_shared/auth.ts";
 import { chatWithFallback } from "../_shared/ai-provider.ts";
 import { fail, ok } from "../_shared/types.ts";
+
+const MAX_FIELD_CHARS = 2000;
 
 const SYSTEM_PROMPT = `You are a friendly medical English tutor for Spanish-speaking
 healthcare professionals in MediLingo. Given an exercise and the user's answer,
@@ -31,6 +33,14 @@ Deno.serve(async (req) => {
   }
   if (!body.prompt) {
     return new Response(JSON.stringify(fail("BAD_REQUEST", "`prompt` is required.")), { status: 400, headers: jsonHeaders });
+  }
+  if (body.prompt.length > MAX_FIELD_CHARS ||
+      (body.userAnswer?.length ?? 0) > MAX_FIELD_CHARS ||
+      (body.correctAnswer?.length ?? 0) > MAX_FIELD_CHARS) {
+    return new Response(JSON.stringify(fail("BAD_REQUEST", "Input field too long.")), { status: 400, headers: jsonHeaders });
+  }
+  if (!(await withinAIQuota(req, "feedback", 120, 1200, 3600))) {
+    return new Response(JSON.stringify(fail("RATE_LIMITED", "Feedback limit reached. Try again later.")), { status: 429, headers: jsonHeaders });
   }
 
   const userPrompt = `Exercise: ${body.prompt}

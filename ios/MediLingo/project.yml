@@ -68,6 +68,15 @@ targets:
         # protected by RLS) — safe to commit. AppConfig reads these Info keys.
         SupabaseURL: "https://qjixyztcwqcfdgixdfla.supabase.co"
         SupabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFqaXh5enRjd3FjZmRnaXhkZmxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNDQ2MTcsImV4cCI6MjA5ODkyMDYxN30.9FfxXdeMyoqWpnePRM5uRoSRrV59JdZjAPqhynm4W2Y"
+        # Analytics / subscriptions keys. `$(VAR)` expands to "" when the build
+        # setting is unset (define it in Secrets.xcconfig), so the matching
+        # service stays a safe no-op until a real key is provided.
+        RevenueCatAPIKey: "$(REVENUE_CAT_API_KEY)"
+        PostHogAPIKey: "$(POSTHOG_API_KEY)"
+        PostHogHost: "$(POSTHOG_HOST)"
+        # Remote push: lets APNs-delivered content wake the app.
+        UIBackgroundModes:
+          - remote-notification
         CFBundleURLTypes:
           - CFBundleURLName: com.christian-arzaluz.MediLingo
             CFBundleURLSchemes:
@@ -77,6 +86,9 @@ targets:
       properties:
         com.apple.developer.applesignin:
           - Default
+        # Remote push. `development` for dev/TestFlight-via-Xcode; the App Store
+        # build is remapped to `production` by the Push Notifications capability.
+        aps-environment: development
     dependencies:
       - package: Supabase
         product: Supabase
