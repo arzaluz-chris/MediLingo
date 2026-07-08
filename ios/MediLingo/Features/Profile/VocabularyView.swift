@@ -29,6 +29,9 @@ final class VocabularyViewModel {
 }
 
 // Browse + search published vocabulary; add words to the review deck.
+//
+// Redesign: proper search field with icon and clear button, richer term cards
+// (word + phonetic + translation), and an animated add-to-deck action.
 struct VocabularyView: View {
     @Environment(AppDependencies.self) private var dependencies
     @State private var viewModel: VocabularyViewModel?
@@ -55,53 +58,93 @@ struct VocabularyView: View {
         if let viewModel {
             @Bindable var vm = viewModel
             VStack(spacing: MLSpacing.sm) {
-                TextField("Buscar término…", text: $vm.query)
-                    .autocorrectionDisabled()
-                    .padding(MLSpacing.md)
-                    .background(Color.mlSurface)
-                    .clipShape(RoundedRectangle(cornerRadius: MLRadius.md))
-                    .foregroundStyle(Color.mlTextPrimary)
-                    .submitLabel(.search)
-                    .onSubmit { Task { await vm.search() } }
+                searchField(vm)
                     .padding(.horizontal, MLSpacing.md)
 
                 if vm.isLoading {
-                    MLLoadingView()
+                    MLSkeletonList(rows: 6, rowHeight: 72)
                 } else if vm.words.isEmpty {
                     MLEmptyState(systemImage: "magnifyingglass", title: "Sin resultados",
-                                 subtitle: "Prueba con otro término.")
+                                 subtitle: "Prueba con otro término médico, como “heart” o “fiebre”.",
+                                 tint: .mlCyan)
                 } else {
                     ScrollView {
-                        VStack(spacing: MLSpacing.sm) {
+                        VStack(spacing: MLSpacing.sm + MLSpacing.xs) {
                             ForEach(vm.words) { word in row(word, vm: vm) }
                         }
                         .padding(MLSpacing.md)
+                        .padding(.bottom, MLSpacing.xl)
                     }
+                    .scrollDismissesKeyboard(.immediately)
                 }
             }
-            .padding(.top, MLSpacing.md)
+            .padding(.top, MLSpacing.sm)
         } else {
-            MLLoadingView()
+            MLSkeletonList(rows: 6, rowHeight: 72)
         }
     }
 
+    private func searchField(_ vm: VocabularyViewModel) -> some View {
+        @Bindable var vm = vm
+        return HStack(spacing: MLSpacing.sm) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(Color.mlTextTertiary)
+            TextField("Buscar término…", text: $vm.query)
+                .autocorrectionDisabled()
+                .font(MLFont.body)
+                .foregroundStyle(Color.mlTextPrimary)
+                .submitLabel(.search)
+                .onSubmit { Task { await vm.search() } }
+            if !vm.query.isEmpty {
+                Button {
+                    vm.query = ""
+                    Task { await vm.search() }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(Color.mlTextTertiary)
+                }
+                .accessibilityLabel("Borrar búsqueda")
+            }
+        }
+        .padding(MLSpacing.md)
+        .background(Color.mlSurface, in: RoundedRectangle(cornerRadius: MLRadius.md, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: MLRadius.md, style: .continuous)
+                .strokeBorder(Color.mlCardStroke, lineWidth: 1)
+        )
+    }
+
     private func row(_ word: VocabularyWord, vm: VocabularyViewModel) -> some View {
-        MLCard {
+        let isAdded = vm.added.contains(word.id)
+        return MLCard {
             HStack(spacing: MLSpacing.md) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(word.word).font(MLFont.heading(17)).foregroundStyle(Color.mlTextPrimary)
-                    Text(word.translationES).font(MLFont.caption()).foregroundStyle(Color.mlTextSecondary)
+                VStack(alignment: .leading, spacing: MLSpacing.xxs) {
+                    HStack(spacing: MLSpacing.sm) {
+                        Text(word.word)
+                            .font(MLFont.headline)
+                            .foregroundStyle(Color.mlTextPrimary)
+                        if let phonetic = word.phonetic {
+                            Text(phonetic)
+                                .font(MLFont.mono)
+                                .foregroundStyle(Color.mlTextTertiary)
+                        }
+                    }
+                    Text(word.translationES)
+                        .font(MLFont.subheadline)
+                        .foregroundStyle(Color.mlTextSecondary)
                 }
                 Spacer(minLength: 0)
                 Button {
-                    vm.addToDeck(word)
+                    MLHaptic.correct()
+                    withAnimation(MLMotion.bouncy) { vm.addToDeck(word) }
                 } label: {
-                    Image(systemName: vm.added.contains(word.id) ? "checkmark.circle.fill" : "plus.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundStyle(vm.added.contains(word.id) ? Color.mlSuccess : Color.mlPrimary)
+                    Image(systemName: isAdded ? "checkmark.circle.fill" : "plus.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(isAdded ? Color.mlEmerald : Color.mlPrimary)
+                        .contentTransition(.symbolEffect(.replace))
                 }
-                .disabled(vm.added.contains(word.id))
-                .accessibilityLabel("Agregar \(word.word) al repaso")
+                .disabled(isAdded)
+                .accessibilityLabel(isAdded ? "\(word.word) agregada al repaso" : "Agregar \(word.word) al repaso")
             }
         }
     }

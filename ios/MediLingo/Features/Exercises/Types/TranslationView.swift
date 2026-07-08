@@ -28,22 +28,30 @@ struct TranslationView: View {
             content: {
                 VStack(alignment: .leading, spacing: MLSpacing.md) {
                     if !meta.sourceText.isEmpty {
-                        Text(meta.sourceText)
-                            .font(MLFont.body(18))
-                            .foregroundStyle(Color.mlTextPrimary)
-                            .padding(MLSpacing.md)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.mlSurface)
-                            .clipShape(RoundedRectangle(cornerRadius: MLRadius.md))
-                    }
-                    TextField("Tu traducción", text: $answer, axis: .vertical)
-                        .lineLimit(2...5)
-                        .autocorrectionDisabled()
+                        HStack(alignment: .top, spacing: MLSpacing.sm + MLSpacing.xs) {
+                            Image(systemName: "quote.opening")
+                                .font(.footnote.weight(.bold))
+                                .foregroundStyle(Color.mlCyan)
+                                .accessibilityHidden(true)
+                            Text(meta.sourceText)
+                                .font(MLFont.title3)
+                                .foregroundStyle(Color.mlTextPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                         .padding(MLSpacing.md)
-                        .background(Color.mlSurface)
-                        .clipShape(RoundedRectangle(cornerRadius: MLRadius.md))
-                        .foregroundStyle(Color.mlTextPrimary)
-                        .disabled(phase == .checked)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.mlCyan.opacity(0.08), in: RoundedRectangle(cornerRadius: MLRadius.md, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: MLRadius.md, style: .continuous)
+                                .strokeBorder(Color.mlCyan.opacity(0.25), lineWidth: 1)
+                        )
+                    }
+                    ExerciseTextField(
+                        placeholder: "Tu traducción",
+                        text: $answer,
+                        lineLimit: 2...5,
+                        disabled: phase == .checked,
+                    )
                 }
             },
             footer: ExerciseFooter(
@@ -51,7 +59,7 @@ struct TranslationView: View {
                 canCheck: !answer.trimmingCharacters(in: .whitespaces).isEmpty,
                 isCorrect: isCorrect,
                 explanation: isCorrect ? (exercise.explanationES ?? exercise.explanation) : "Ejemplo: \(meta.acceptableTranslations.first ?? "")",
-                onCheck: { phase = .checked },
+                onCheck: { withAnimation(MLMotion.smooth) { phase = .checked } },
                 onContinue: {
                     onComplete(ExerciseResult(isCorrect: isCorrect, xpEarned: isCorrect ? exercise.xpReward : 0, explanation: exercise.explanation))
                 },

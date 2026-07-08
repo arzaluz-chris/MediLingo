@@ -57,10 +57,10 @@ private struct ExercisePlaceholderView: View {
     var body: some View {
         VStack(spacing: MLSpacing.lg) {
             Text(exercise.type.rawValue)
-                .font(MLFont.caption())
+                .font(MLFont.caption)
                 .foregroundStyle(Color.mlTextTertiary)
             Text(exercise.prompt)
-                .font(MLFont.heading())
+                .font(MLFont.title3)
                 .foregroundStyle(Color.mlTextPrimary)
                 .multilineTextAlignment(.center)
             MLButton(title: "Continuar") {

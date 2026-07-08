@@ -10,6 +10,8 @@ struct MatchingView: View {
     @State private var mistakes = 0
     @State private var rightOrder: [String] = []
     @State private var phase: AnswerPhase = .answering
+    /// Briefly highlights a wrong pick in red.
+    @State private var flashWrongID: String?
 
     private struct Pair { let id: String; let left: String; let right: String }
 
@@ -40,7 +42,7 @@ struct MatchingView: View {
                 canCheck: allMatched,
                 isCorrect: isCorrect,
                 explanation: isCorrect ? exercise.explanation : "Errores: \(mistakes)",
-                onCheck: { phase = .checked },
+                onCheck: { withAnimation(MLMotion.smooth) { phase = .checked } },
                 onContinue: {
                     onComplete(ExerciseResult(isCorrect: isCorrect, xpEarned: isCorrect ? exercise.xpReward : 0, explanation: exercise.explanation))
                 },
@@ -49,43 +51,73 @@ struct MatchingView: View {
     }
 
     private func column(ids: [String], text: @escaping (String) -> String, isLeft: Bool) -> some View {
-        VStack(spacing: MLSpacing.sm) {
+        VStack(spacing: MLSpacing.sm + MLSpacing.xs) {
             ForEach(ids, id: \.self) { id in
                 let isMatched = matched.contains(id)
                 let isSelected = isLeft && selectedLeft == id
+                let isWrongFlash = !isLeft && flashWrongID == id
+
                 Button { tap(id: id, isLeft: isLeft) } label: {
                     Text(text(id))
-                        .font(MLFont.body())
-                        .foregroundStyle(Color.mlTextPrimary)
-                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .font(MLFont.bodyMedium)
+                        .foregroundStyle(tileForeground(matched: isMatched))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity, minHeight: 56)
                         .padding(.horizontal, MLSpacing.sm)
-                        .background(background(matched: isMatched, selected: isSelected))
-                        .clipShape(RoundedRectangle(cornerRadius: MLRadius.md))
+                        .padding(.vertical, MLSpacing.sm)
+                        .background(tileBackground(matched: isMatched, selected: isSelected, wrong: isWrongFlash))
                 }
+                .buttonStyle(MLPressableButtonStyle())
                 .disabled(isMatched || phase == .checked)
-                .opacity(isMatched ? 0.5 : 1)
+                .accessibilityLabel(accessibilityText(text(id), matched: isMatched, selected: isSelected))
             }
         }
     }
 
     private func tap(id: String, isLeft: Bool) {
-        MLHaptic.tap()
+        MLHaptic.selection()
         if isLeft {
-            selectedLeft = id
+            withAnimation(MLMotion.snappy) { selectedLeft = id }
         } else if let left = selectedLeft {
             if left == id {
-                matched.insert(id)
+                MLHaptic.correct()
+                withAnimation(MLMotion.bouncy) { matched.insert(id) }
             } else {
                 mistakes += 1
                 MLHaptic.incorrect()
+                withAnimation(MLMotion.snappy) { flashWrongID = id }
+                Task {
+                    try? await Task.sleep(for: .seconds(0.45))
+                    withAnimation(MLMotion.snappy) { flashWrongID = nil }
+                }
             }
-            selectedLeft = nil
+            withAnimation(MLMotion.snappy) { selectedLeft = nil }
         }
     }
 
-    private func background(matched: Bool, selected: Bool) -> Color {
-        if matched { return Color.mlSuccess.opacity(0.25) }
-        if selected { return Color.mlPrimary.opacity(0.25) }
-        return Color.mlSurface
+    private func tileForeground(matched: Bool) -> Color {
+        matched ? .mlEmerald : .mlTextPrimary
+    }
+
+    private func tileBackground(matched: Bool, selected: Bool, wrong: Bool) -> some View {
+        let shape = RoundedRectangle(cornerRadius: MLRadius.md, style: .continuous)
+        let fill: Color = if wrong { Color.mlError.opacity(0.14) }
+            else if matched { Color.mlEmerald.opacity(0.12) }
+            else if selected { Color.mlPrimary.opacity(0.12) }
+            else { Color.mlSurface }
+        let stroke: Color = if wrong { .mlError }
+            else if matched { .mlEmerald.opacity(0.6) }
+            else if selected { .mlPrimary }
+            else { .mlCardStroke }
+        return shape
+            .fill(fill)
+            .overlay(shape.strokeBorder(stroke, lineWidth: selected || wrong ? 2 : 1))
+            .shadow(color: MLShadow.soft.color, radius: MLShadow.soft.radius, y: MLShadow.soft.y)
+    }
+
+    private func accessibilityText(_ text: String, matched: Bool, selected: Bool) -> String {
+        if matched { return "\(text). Emparejada" }
+        if selected { return "\(text). Seleccionada" }
+        return text
     }
 }
