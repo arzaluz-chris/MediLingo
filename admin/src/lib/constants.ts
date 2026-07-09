@@ -20,6 +20,18 @@ export const MVP_EXERCISE_TYPES = [
   "pronunciation",
 ] as const;
 
+// Lesson types (mirror of lessons.lesson_type CHECK).
+export const LESSON_TYPES = [
+  "standard",
+  "review",
+  "clinical_case",
+  "listening",
+  "pronunciation",
+  "writing",
+  "conversation",
+  "test",
+] as const;
+
 // Daily quest types (mirror of daily_quests.quest_type CHECK).
 export const QUEST_TYPES = [
   "complete_lessons",

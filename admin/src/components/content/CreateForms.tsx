@@ -3,11 +3,20 @@
 import { useState, useTransition, type FormEvent } from "react";
 import { Plus, X } from "lucide-react";
 import { createCourse, createModule, createLesson, createExercise, type ActionResult } from "@/lib/actions/content";
+import { EXERCISE_META_TEMPLATES, isExerciseMetaType, type ExerciseMetaType } from "@/lib/ai/schemas";
 import { MVP_EXERCISE_TYPES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+
+// Starter metadata JSON for a type, pretty-printed for the editor textarea.
+function metaTemplateFor(type: string): string {
+  return isExerciseMetaType(type)
+    ? JSON.stringify(EXERCISE_META_TEMPLATES[type as ExerciseMetaType], null, 2)
+    : "{}";
+}
 
 // Shared submit wrapper: runs the action, shows the first error, resets on success.
 function useFormAction() {
@@ -121,6 +130,11 @@ export function CreateLessonForm({ moduleId, courseId }: { moduleId: string; cou
 export function CreateExerciseForm({ lessonId, basePath }: { lessonId: string; basePath: string }) {
   const { pending, error, run } = useFormAction();
   const [optionCount, setOptionCount] = useState(4);
+  // Metadata is a controlled textarea reseeded from the per-type template each
+  // time the type changes. Without it, 6 of 10 types (fill_in_blank, translation,
+  // sentence_ordering, flashcard, typing, pronunciation) failed to create — their
+  // schema requires fields an empty "{}" can't supply.
+  const [meta, setMeta] = useState(() => metaTemplateFor("multiple_choice"));
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -132,7 +146,12 @@ export function CreateExerciseForm({ lessonId, basePath }: { lessonId: string; b
         <input type="hidden" name="lesson_id" value={lessonId} />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Type">
-            <select name="exercise_type" className={selectClass} defaultValue="multiple_choice">
+            <select
+              name="exercise_type"
+              className={selectClass}
+              defaultValue="multiple_choice"
+              onChange={(e) => setMeta(metaTemplateFor(e.target.value))}
+            >
               {MVP_EXERCISE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </Field>
@@ -144,6 +163,17 @@ export function CreateExerciseForm({ lessonId, basePath }: { lessonId: string; b
           <Field label="Explanation (EN)"><Input name="explanation" /></Field>
           <Field label="Explanation (ES)"><Input name="explanation_es" /></Field>
         </div>
+
+        <Field label="Metadata (JSON — validated against the type schema)">
+          <Textarea
+            name="metadata"
+            value={meta}
+            onChange={(e) => setMeta(e.target.value)}
+            rows={8}
+            spellCheck={false}
+            className="font-mono text-xs"
+          />
+        </Field>
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">

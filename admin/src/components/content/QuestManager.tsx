@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
-import { Eye, EyeOff } from "lucide-react";
-import { createQuest, toggleQuestActive } from "@/lib/actions/gamification";
+import { Eye, EyeOff, Pencil } from "lucide-react";
+import { createQuest, toggleQuestActive, updateQuest } from "@/lib/actions/gamification";
 import { QUEST_TYPES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,6 +90,8 @@ export function QuestForm() {
 export function QuestRow({ quest }: { quest: Quest }) {
   const [pending, start] = useTransition();
   const [active, setActive] = useState(quest.is_active);
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function toggle() {
     start(async () => {
@@ -99,24 +101,81 @@ export function QuestRow({ quest }: { quest: Quest }) {
     });
   }
 
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    start(async () => {
+      const r = await updateQuest(quest.id, new FormData(form));
+      if (r.ok) { setEditing(false); setError(null); }
+      else setError(r.error);
+    });
+  }
+
   return (
     <Card>
-      <CardContent className="flex items-center justify-between gap-4 py-3">
-        <div className="min-w-0">
-          <p className="font-medium truncate">{quest.title}</p>
-          <p className="text-sm text-neutral-500 truncate">
-            {quest.quest_type} · target {quest.target_value} · +{quest.xp_reward} XP · +{quest.gem_reward} 💎
-          </p>
+      <CardContent className="py-3">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-medium truncate">{quest.title}</p>
+            <p className="text-sm text-neutral-500 truncate">
+              {quest.quest_type} · target {quest.target_value} · +{quest.xp_reward} XP · +{quest.gem_reward} 💎
+            </p>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setEditing((v) => !v)}
+              aria-label="Edit quest"
+            >
+              <Pencil className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggle}
+              disabled={pending}
+              aria-label={active ? "Deactivate quest" : "Activate quest"}
+            >
+              {active ? <Eye className="size-4" /> : <EyeOff className="size-4 text-neutral-400" />}
+            </Button>
+          </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggle}
-          disabled={pending}
-          aria-label={active ? "Deactivate quest" : "Activate quest"}
-        >
-          {active ? <Eye className="size-4" /> : <EyeOff className="size-4 text-neutral-400" />}
-        </Button>
+
+        {editing && (
+          <form onSubmit={onSubmit} className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Title</Label>
+              <Input name="title" defaultValue={quest.title} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Description</Label>
+              <Input name="description" defaultValue={quest.description} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Quest type</Label>
+              <select name="quest_type" className={selectClass} defaultValue={quest.quest_type}>
+                {QUEST_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Target value</Label>
+              <Input name="target_value" type="number" min={1} defaultValue={quest.target_value} required />
+            </div>
+            <div className="space-y-1.5">
+              <Label>XP reward</Label>
+              <Input name="xp_reward" type="number" min={0} defaultValue={quest.xp_reward} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Gem reward</Label>
+              <Input name="gem_reward" type="number" min={0} defaultValue={quest.gem_reward} />
+            </div>
+            <div className="sm:col-span-2 flex items-center gap-3">
+              <Button type="submit" disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
+              {error && <span className="text-sm text-red-500">{error}</span>}
+            </div>
+          </form>
+        )}
       </CardContent>
     </Card>
   );

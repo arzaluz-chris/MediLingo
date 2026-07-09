@@ -4,6 +4,8 @@ import { Header } from "@/components/layout/header";
 import { Card } from "@/components/ui/card";
 import { CreateModuleForm } from "@/components/content/CreateForms";
 import { RowControls } from "@/components/content/RowControls";
+import { InlineEditor } from "@/components/content/InlineEditor";
+import { updateModule } from "@/lib/actions/content";
 import { createAdminClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -22,12 +24,21 @@ export default async function CoursePage({ params }: { params: Promise<{ courseI
         <CreateModuleForm courseId={courseId} />
         <div className="space-y-2">
           {(modules ?? []).map((m) => (
-            <Card key={m.id} className="flex items-center justify-between p-4">
+            <Card key={m.id} className="flex flex-wrap items-center justify-between gap-y-2 p-4">
               <Link href={`${path}/modules/${m.id}`} className="flex items-center gap-3 flex-1 min-w-0">
                 <span className="font-medium truncate">{m.title}</span>
                 <span className="text-xs text-neutral-500">{m.slug}</span>
               </Link>
               <div className="flex items-center gap-2">
+                <InlineEditor
+                  ariaLabel="Edit module"
+                  submit={updateModule.bind(null, m.id, path)}
+                  fields={[
+                    { name: "title", label: "Title", defaultValue: m.title },
+                    { name: "slug", label: "Slug", defaultValue: m.slug },
+                    { name: "sort_order", label: "Sort order", type: "number", defaultValue: m.sort_order },
+                  ]}
+                />
                 <RowControls table="modules" id={m.id} isPublished={m.is_published} revalidate={path} />
                 <ChevronRight className="h-4 w-4 text-neutral-400" />
               </div>
